@@ -283,6 +283,9 @@
   .targets .sw-key.c { border-color: var(--carb); color: var(--carb); background: var(--carb-soft); }
   .targets .sw-key.f { border-color: var(--fat); color: var(--fat); background: var(--fat-soft); }
   .day h2 em.train { color: var(--herb); }
+  .day h2 em.rest { color: var(--rest); }
+  .meal.walk .time, .meal.walk h3 { color: var(--rest); }
+  .meal.walk { background: var(--rest-soft); }
   .total span:nth-child(even) { text-align: right; }
   .snack {
     display: grid;
@@ -506,7 +509,7 @@
           <div class="time">19:00</div>
           <div>
             <h3>Entrenamiento</h3>
-            <p class="note">Agua: 500 ml por hora. Sábado: si Garmin marca más de 500 kcal en el trote, +40 g de arroz al almuerzo. <span class="rest-txt">Domingo: caminata de 45–60 min.</span></p>
+            <p class="note">Agua: 500 ml por hora. Sábado: si Garmin marca más de 500 kcal en el trote, +40 g de arroz al almuerzo.</p>
           </div>
         </li>
         <li class="meal">
@@ -523,6 +526,66 @@
         </li>
       </ol>
       <div class="total"><span class="train">~1.690 kcal</span><span class="train">P 130 · C 174 · G 50</span></div>
+    </section>
+    <section class="day">
+      <h2>Domingo <em class="rest">Descanso · menú completo, sin recorte</em></h2>
+      <ol class="meals">
+        <li class="meal">
+          <div class="time">07:30</div>
+          <div>
+            <h3>Desayuno<span class="kcal">380 kcal (0,3 g sal)</span></h3>
+            <ul class="items">
+              <li class="sw p"><b>2</b> huevos</li>
+              <li class="sw c"><b>40 g</b> avena</li>
+              <li class="sw c"><b>100 g</b> frutillas</li>
+              <li><b>150 ml</b> leche sin lactosa</li>
+            </ul>
+          </div>
+        </li>
+        <li class="meal">
+          <div class="time">13:00</div>
+          <div>
+            <h3>Almuerzo<span class="kcal">525 kcal (0,6 g sal)</span></h3>
+            <ul class="items plate">
+              <li class="sw p"><b>150 g</b> pollo</li>
+              <li class="sw c"><b>60/174 g</b> arroz <span class="eq">(crudo/cocido)</span></li>
+              <li class="sw f"><b>8 g</b> aceite de oliva</li>
+              <li>verduras libres</li>
+            </ul>
+          </div>
+        </li>
+        <li class="meal shake">
+          <div class="time">17:30</div>
+          <div>
+            <h3>Colación<span class="kcal">320 kcal</span></h3>
+            <ul class="items">
+              <li class="sw p"><b>1</b> scoop whey aislado</li>
+              <li class="sw c"><b>1</b> plátano <span class="eq">(120 g pelado)</span></li>
+              <li class="sw f"><b>15 g</b> nueces</li>
+            </ul>
+          </div>
+        </li>
+        <li class="meal activity walk">
+          <div class="time">18:00</div>
+          <div>
+            <h3>Caminata</h3>
+            <p class="note">45–60 min a paso rápido. Agua: 500 ml.</p>
+          </div>
+        </li>
+        <li class="meal">
+          <div class="time">20:30</div>
+          <div>
+            <h3>Cena<span class="kcal">465 kcal (0,6 g sal)</span></h3>
+            <ul class="items plate">
+              <li class="sw p"><b>130 g</b> vacuno magro</li>
+              <li class="sw c"><b>200 g</b> papa</li>
+              <li class="sw f"><b>25 g</b> palta + <b>5 g</b> aceite</li>
+              <li>verduras libres</li>
+            </ul>
+          </div>
+        </li>
+      </ol>
+      <div class="total"><span class="rest">~1.690 kcal</span><span class="rest">P 130 · C 174 · G 50</span></div>
     </section>
   </div>
 
