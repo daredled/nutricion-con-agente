@@ -1,0 +1,15 @@
+[project]
+name = "alimentacion"
+version = "0.1.0"
+description = "Plan de alimentación y seguimiento diario (WHOOP, Withings y Fitdays)"
+requires-python = ">=3.14"
+dependencies = [
+    "fitdays-sync",
+    "whoop-sync",
+    "withings-sync",
+]
+
+[tool.uv.sources]
+whoop-sync = { git = "https://github.com/daredled/whoop-sync" }
+withings-sync = { git = "https://github.com/daredled/withings-sync" }
+fitdays-sync = { git = "https://github.com/daredled/fitdays-sync" }

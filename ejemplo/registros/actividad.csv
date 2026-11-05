@@ -1,0 +1,24 @@
+date,recovery,hrv_ms,resting_hr,sleep_h,day_strain,day_kcal,steps,workouts,cycle_complete
+2026-10-12,,51.6,57,7.55,,2145,11107,strength_training 60min 230kcal,yes
+2026-10-13,,42.3,56,8.03,,2273,8738,running 45min 390kcal,yes
+2026-10-14,,38.5,57,6.52,,2035,9152,strength_training 62min 240kcal,yes
+2026-10-15,,44.4,57,7.35,,2210,7778,running 44min 380kcal,yes
+2026-10-16,,43.6,55,6.55,,2124,11560,strength_training 58min 220kcal,yes
+2026-10-17,,44.7,53,8.37,,2297,11675,running 78min 640kcal,yes
+2026-10-18,,42.3,53,6.62,,1993,9433,,yes
+2026-10-19,,39.9,53,6.77,,2039,10457,strength_training 60min 230kcal,yes
+2026-10-20,,40.8,56,6.97,,2282,6284,running 45min 390kcal,yes
+2026-10-21,,41.2,58,6.12,,2246,11335,strength_training 62min 240kcal,yes
+2026-10-22,,50.1,58,8.33,,2157,10104,running 44min 380kcal,yes
+2026-10-23,,42.3,53,7.12,,2200,8964,strength_training 58min 220kcal,yes
+2026-10-24,,40.2,57,6.60,,2450,11397,running 78min 640kcal,yes
+2026-10-25,,49.7,51,6.87,,2087,7125,,yes
+2026-10-26,,42.1,56,5.55,,2176,7956,strength_training 60min 230kcal,yes
+2026-10-27,,46.2,55,7.17,,2247,8994,running 45min 390kcal,yes
+2026-10-28,,43.5,55,6.97,,2117,9805,strength_training 62min 240kcal,yes
+2026-10-29,,38.1,56,6.82,,2162,11317,running 44min 380kcal,yes
+2026-10-30,,46.7,54,7.48,,2169,7673,strength_training 58min 220kcal,yes
+2026-10-31,,46.4,54,7.30,,2456,10069,running 78min 640kcal,yes
+2026-11-01,,46.5,55,6.48,,1923,8485,,yes
+2026-11-02,,29.8,54,7.57,,2280,8551,strength_training 60min 230kcal,yes
+2026-11-03,,38.8,54,5.82,,2256,10765,running 45min 390kcal,yes

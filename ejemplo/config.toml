@@ -1,0 +1,59 @@
+# Persona ficticia. Ver plantillas/config.toml.
+nombre = "Ana"
+plan = "plan/2026-10-18_plan-fase1.md"
+
+[fechas]
+datos_desde = "2026-10-12"
+dia_0 = "2026-10-18"
+dia_1 = "2026-10-19"
+base_segmentos = "2026-10-12"
+
+[fuentes]
+pesa = "fitdays"
+actividad = "csv"          # exportación de Garmin en entrada/, convertida con importar/garmin.py
+presion = "ninguna"
+dispositivo = "Garmin"
+
+[ingesta]
+menu = [["2026-10-12", 1690]]
+
+[panel]
+pasos_nota = "El plan pide al menos 8.000 al día."
+
+[[entrenamientos]]
+tipo = "strength_training"
+nombre = "Fuerza"
+color = "--s-violet"
+etiqueta = "fuerza"
+
+[[entrenamientos]]
+tipo = "running"
+nombre = "Trote"
+color = "--s-orange"
+etiqueta = "trote"
+
+[[entrenamientos]]
+tipo = "walking"
+nombre = "Caminata"
+color = "--s-blue"
+sesion = false
+
+[reglas]
+goalLow = 66.5
+goalHigh = 68.0
+tolerance = 1.0
+hrvMin = 38.4
+sleepMin = 6
+stepsMin = 8000
+visceralGoal = 7
+fatGoal = 25
+ffmMin = 49.5
+bpUsual = [110, 120, 70, 80]
+bpHigh = [140, 90]
+bpLow = [90, 60]
+doubleExtra = 0
+# Resultado 1 de analisis/gasto-calorico.md (2026-11-02).
+whoopFactor = 1.13
+whoopFactorRange = [1.05, 1.2]
+deficitGoal = [20, 25]
+deficitHigh = 35

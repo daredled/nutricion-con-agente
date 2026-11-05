@@ -1,0 +1,1258 @@
+<title>Seguimiento de Ana</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Barlow+Semi+Condensed:wght@500;600;700&family=Public+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: instrument panel. A strip of readings on top, then one shared time axis down the page:
+   weight full width, paired small charts below, data tables last. */
+:root {
+  --bg: #f3f5f4;
+  --surface: #fcfcfb;
+  --ink: #101614;
+  --ink-2: #4a5450;
+  --muted: #7d8581;
+  --grid: #e1e5e2;
+  --axis: #c2c9c5;
+  --line: rgba(16, 22, 20, 0.10);
+  --accent: #1d6b63;
+  --accent-wash: rgba(29, 107, 99, 0.10);
+  --pre: rgba(16, 22, 20, 0.035);
+  --s-blue: #2a78d6;
+  --s-blue-strong: #184f95;
+  --s-orange: #eb6834;
+  --s-aqua: #1baf7a;
+  --s-violet: #4a3aa7;
+  --s-neutral: #b9c0bc;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+  --good-ink: #006300;
+  --warning-ink: #8a5a00;
+  --critical-ink: #b02a2a;
+  --band-tol: rgba(42, 120, 214, 0.10);
+  --band-goal: rgba(12, 163, 12, 0.12);
+  --band-usual: rgba(16, 22, 20, 0.05);
+  --font-display: "Barlow Semi Condensed", "Arial Narrow", system-ui, sans-serif;
+  --font-body: "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #0e1110; --surface: #171a19; --ink: #f1f4f2; --ink-2: #c0c7c3; --muted: #858c88;
+    --grid: #262b29; --axis: #39403c; --line: rgba(255, 255, 255, 0.10); --accent: #63b5aa;
+    --accent-wash: rgba(99, 181, 170, 0.14); --pre: rgba(255, 255, 255, 0.03);
+    --s-blue: #3987e5; --s-blue-strong: #86b6ef; --s-orange: #d95926; --s-aqua: #199e70;
+    --s-violet: #9085e9; --s-neutral: #4a514d;
+    --good-ink: #0ca30c; --warning-ink: #fab219; --critical-ink: #e66767;
+    --band-tol: rgba(57, 135, 229, 0.16); --band-goal: rgba(12, 163, 12, 0.16);
+    --band-usual: rgba(255, 255, 255, 0.05);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #0e1110; --surface: #171a19; --ink: #f1f4f2; --ink-2: #c0c7c3; --muted: #858c88;
+  --grid: #262b29; --axis: #39403c; --line: rgba(255, 255, 255, 0.10); --accent: #63b5aa;
+  --accent-wash: rgba(99, 181, 170, 0.14); --pre: rgba(255, 255, 255, 0.03);
+  --s-blue: #3987e5; --s-blue-strong: #86b6ef; --s-orange: #d95926; --s-aqua: #199e70;
+  --s-violet: #9085e9; --s-neutral: #4a514d;
+  --good-ink: #0ca30c; --warning-ink: #fab219; --critical-ink: #e66767;
+  --band-tol: rgba(57, 135, 229, 0.16); --band-goal: rgba(12, 163, 12, 0.16);
+  --band-usual: rgba(255, 255, 255, 0.05);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  background: var(--bg); color: var(--ink); font-family: var(--font-body); font-size: 14px;
+  line-height: 1.45; padding-inline: 16px; padding-block: 20px 40px;
+}
+.wrap { max-width: 1120px; margin-inline: auto; display: grid; gap: 20px; }
+
+.top-ctl { display: flex; flex-wrap: wrap; gap: 8px; }
+header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
+h1 { font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1.05; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
+.sub { color: var(--ink-2); margin: 4px 0 0; font-size: 13px; }
+
+.range { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 3px; gap: 2px; }
+.range button {
+  font: 500 13px var(--font-body); color: var(--ink-2); background: none; border: 0; border-radius: 6px;
+  padding: 6px 12px; cursor: pointer;
+}
+.range button:hover { background: var(--accent-wash); color: var(--ink); }
+.range button[aria-pressed="true"] { background: var(--accent); color: var(--surface); }
+.range button:focus-visible, .chart svg:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* Readings strip */
+.readings { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.reading { background: var(--surface); padding: 14px 16px 16px; display: grid; gap: 4px; align-content: start; min-width: 0; }
+.reading .label { font-size: 11px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.reading .value { font-family: var(--font-display); font-weight: 600; font-size: 34px; line-height: 1; }
+.reading .value small { font-size: 16px; font-weight: 500; color: var(--ink-2); margin-left: 3px; }
+.reading .note { font-size: 12.5px; color: var(--ink-2); }
+.chip { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; width: fit-content; }
+.chip::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: currentColor; flex: none; }
+.chip.good { color: var(--good-ink); }
+.chip.warning { color: var(--warning-ink); }
+.chip.critical { color: var(--critical-ink); }
+.chip.neutral { color: var(--ink-2); }
+
+/* Panels */
+.grid2 { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 440px), 1fr)); gap: 20px; }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 16px 16px 12px; display: grid; gap: 8px; min-width: 0; align-content: start; }
+.panel h2 { font-family: var(--font-display); font-weight: 600; font-size: 19px; margin: 0; line-height: 1.15; }
+.panel .desc { color: var(--ink-2); font-size: 12.5px; margin: 0; max-width: 70ch; }
+.panel .est { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--warning-ink); font-weight: 600; margin-left: 6px; }
+.legend { display: flex; flex-wrap: wrap; gap: 4px 16px; font-size: 12px; color: var(--ink-2); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.key-dot { width: 8px; height: 8px; border-radius: 50%; }
+.key-line { width: 16px; height: 2px; border-radius: 1px; }
+.key-dash { width: 16px; height: 0; border-top: 2px dashed; }
+.key-rect { width: 12px; height: 10px; border-radius: 2px; }
+.key-dia { width: 8px; height: 8px; border-radius: 1px; transform: rotate(45deg); margin-inline: 1px; }
+
+.chart { position: relative; }
+.chart svg { display: block; width: 100%; overflow: visible; touch-action: pan-y; }
+.chart svg text { font-family: var(--font-body); font-size: 11px; fill: var(--muted); font-variant-numeric: tabular-nums; }
+.chart svg text.lbl { fill: var(--ink-2); font-weight: 500; }
+.chart .sub-title { font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 0 0 2px; }
+.comp-title { font-size: 12px; font-weight: 600; color: var(--ink-2); margin: 0; }
+.body-grid { display: grid; max-width: 520px; width: 100%; margin-inline: auto; grid-template-columns: 1fr 130px 1fr; grid-template-rows: repeat(3, 1fr); gap: 6px 10px; align-items: start; }
+.body-grid svg { grid-column: 2; grid-row: 1 / 4; width: 100%; height: auto; display: block; }
+.seg-lbl { display: grid; gap: 1px; font-size: 12px; color: var(--ink-2); min-width: 0; }
+.seg-lbl.right { text-align: right; justify-items: end; }
+.seg-lbl .seg-name { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+.seg-lbl b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.seg-lbl .seg-delta { color: var(--muted); font-size: 11.5px; }
+.seg-lbl .seg-delta.delta-down { color: var(--good-ink); }
+.seg-lbl .seg-delta.delta-up { color: var(--critical-ink); }
+.seg-row { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; white-space: nowrap; }
+.seg-row b { font-family: var(--font-display); font-size: 17px; }
+.seg-la { grid-column: 1; grid-row: 1; align-self: start; padding-top: 30px; }
+.seg-ra { grid-column: 3; grid-row: 1; align-self: start; padding-top: 30px; }
+.seg-tr { grid-column: 1; grid-row: 2; align-self: center; }
+.seg-ll { grid-column: 1; grid-row: 3; align-self: end; }
+.seg-rl { grid-column: 3; grid-row: 3; align-self: end; }
+.tip {
+  position: absolute; pointer-events: none; z-index: 2; background: var(--surface); border: 1px solid var(--line);
+  border-radius: 8px; padding: 8px 10px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12); font-size: 12px;
+  min-width: 150px; display: grid; gap: 3px;
+}
+.tip[hidden], [hidden] { display: none !important; }
+.tip .t-date { color: var(--muted); font-size: 11px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
+.tip .t-row { display: grid; grid-template-columns: 14px auto 1fr; align-items: center; gap: 6px; }
+.tip .t-row b { font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.tip .t-row span.n { color: var(--ink-2); }
+.tip .t-key { width: 12px; height: 2px; border-radius: 1px; }
+.empty { color: var(--muted); font-size: 12.5px; padding: 8px 0; }
+
+/* Tables */
+.table-wrap { overflow-x: auto; }
+table { border-collapse: collapse; width: 100%; font-variant-numeric: tabular-nums; font-size: 13px; }
+th, td { padding: 6px 10px; text-align: right; border-bottom: 1px solid var(--grid); white-space: nowrap; }
+th:first-child, td:first-child { text-align: left; }
+thead th { font-size: 11px; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); font-weight: 600; border-bottom-color: var(--axis); }
+thead tr.group th { border-bottom: 0; padding-bottom: 0; color: var(--ink-2); }
+.delta-down { color: var(--good-ink); }
+.delta-up { color: var(--critical-ink); }
+details summary { cursor: pointer; font-family: var(--font-display); font-weight: 600; font-size: 17px; }
+details[open] summary { margin-bottom: 8px; }
+footer { color: var(--muted); font-size: 12px; display: grid; gap: 2px; }
+
+/* Weekly history: InBody-style rows sharing the Monday columns */
+.hist-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px 16px; }
+.chart svg text.h-name { font-family: var(--font-display); font-size: 15px; font-weight: 600; fill: var(--ink); }
+.chart svg text.h-unit { font-size: 11.5px; fill: var(--muted); }
+.chart svg text.h-val { font-family: var(--font-display); font-size: 17px; font-weight: 600; fill: var(--ink); }
+.chart svg text.h-date { font-size: 12px; font-weight: 600; fill: var(--ink-2); }
+
+@media (max-width: 520px) {
+  .body-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-rows: none; gap: 14px 12px; }
+  .seg-lbl.right { text-align: left; justify-items: start; }
+  .seg-row { font-size: 12px; }
+  .seg-row b { font-size: 15px; }
+  .body-grid svg { grid-column: 1 / 3; grid-row: 1; width: 120px; margin-inline: auto; }
+  .seg-la, .seg-ra { grid-row: 2; padding-top: 0; }
+  .seg-tr { grid-row: 3; }
+  .seg-ll, .seg-rl { grid-row: 4; }
+  h1 { font-size: 26px; }
+  .reading .value { font-size: 30px; }
+  .range button { padding: 6px 9px; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  .range button { transition: background 120ms, color 120ms; }
+}
+</style>
+
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1>Seguimiento de Ana</h1>
+      <p class="sub" id="sub"></p>
+    </div>
+    <div class="top-ctl">
+    <div class="range" role="group" aria-label="Rango de fechas">
+      <button type="button" id="r7" data-range="7">7 días</button>
+      <button type="button" id="r15" data-range="15">15 días</button>
+      <button type="button" id="r30" data-range="30">30 días</button>
+      <button type="button" id="r60" data-range="60">60 días</button>
+      <button type="button" id="r90" data-range="90">90 días</button>
+      <button type="button" id="rplan" data-range="plan">Plan completo</button>
+    </div>
+    <div class="range" role="group" aria-label="Gasto calórico" id="corr-group">
+      <button type="button" data-corr="0">Garmin tal cual</button>
+      <button type="button" data-corr="1">Corregido × <span class="wf"></span></button>
+    </div>
+    <div class="range" role="group" aria-label="Base de las comparaciones">
+      <button type="button" data-base="first">Desde el lun 12 oct</button>
+      <button type="button" data-base="start">Desde el lun 19 oct</button>
+    </div>
+    </div>
+  </header>
+
+  <section class="readings" id="readings" aria-label="Lecturas actuales"></section>
+
+  <section class="panel">
+    <div class="hist-head">
+      <h2>Historial semanal</h2>
+      <div class="range" role="group" aria-label="Semanas del historial">
+        <button type="button" data-hist="recent">Reciente</button>
+        <button type="button" data-hist="all">Total</button>
+      </div>
+    </div>
+    <p class="desc">Promedio de los 7 días que terminan cada lunes, el día de la revisión semanal. Cada fila tiene su propia escala. Punto hueco: semana con menos de 5 pesajes. El último lunes, unido con línea punteada, es la semana en curso, con los pesajes que van. Parte en el lunes elegido arriba (12 oct o 19 oct); «Reciente» muestra las últimas 6 semanas.</p>
+    <div class="chart" id="c-history"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Peso</h2>
+    <p class="desc">Pesaje diario en ayunas y promedio de los últimos 7 días (aparece con 5 pesajes en la semana; antes, punteado, el promedio parcial). La zona sombreada es la semana 0, de adaptación; el conteo de 90 días parte el 19-10. La línea punteada es la trayectoria de referencia del plan; si el promedio queda más de 1 kg sobre ella por 2 semanas, se aplican las reglas de ajuste.</p>
+    <div class="legend">
+      <span><i class="key-dot" style="background:var(--s-blue)"></i>Pesaje</span>
+      <span><i class="key-line" style="background:var(--s-blue-strong)"></i>Promedio 7 días</span>
+      <span><i class="key-dash" style="border-color:var(--s-blue-strong);opacity:.55"></i>Promedio parcial (2–4 pesajes)</span>
+      <span><i class="key-dash" style="border-color:var(--ink-2)"></i>Referencia del plan</span>
+      <span><i class="key-rect" style="background:var(--band-tol)"></i>Margen +1 kg</span>
+      <span><i class="key-rect" style="background:var(--band-goal)"></i>Zona meta 66,5–68 kg</span>
+      <span><i class="key-dia" style="background:var(--accent)"></i>Hitos 7 · 15 · 30 · 60 · 90 días (la barra marca hasta dónde va bien)</span>
+    </div>
+    <div class="chart" id="c-weight"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Energía <span class="est">Estimado</span></h2>
+    <p class="desc"><span class="corr-only">Gasto <b>corregido</b> (Garmin × <span class="wf"></span>; Garmin subestima ~12 %)</span><span class="raw-only">Gasto <b>según Garmin</b></span><span class="cycle-only">, llevado a 24 h (el «día» de WHOOP va de dormirse a dormirse: dura de 19 a 29 h)</span>, por componente, contra la ingesta estimada (línea punteada: menú, variante sin entreno, doble turno y comidas fuera del plan). La línea azul (desde el 26-10) es el gasto real según la tendencia del peso. El día en curso va en color tenue (incompleto).</p>
+    <div class="legend">
+      <span><i class="key-rect" style="background:var(--s-neutral)"></i>Fuera del entreno</span>
+      <span><i class="key-rect" style="background:var(--s-violet)"></i>Fuerza</span>
+      <span><i class="key-rect" style="background:var(--s-orange)"></i>Trote</span>
+      <span><i class="key-rect" style="background:var(--s-blue)"></i>Caminata</span>
+      <span><i class="key-dash" style="border-color:var(--ink-2)"></i>Ingesta estimada</span>
+      <span id="tdee-key" hidden><i class="key-line" style="background:var(--s-blue-strong)"></i>Gasto real según el peso</span>
+    </div>
+    <div class="chart" id="c-kcal"></div>
+  </section>
+
+  <section class="panel">
+    <h2><span class="corr-only">Déficit real</span><span class="raw-only">Déficit según Garmin</span> <span class="est">Estimado</span></h2>
+    <p class="desc">Cuánto menos comiste de lo que gastaste, como % del gasto<span class="corr-only"> corregido</span><span class="raw-only"> de Garmin</span>. Lo recomendado es 20–25 % (franja verde); sobre 35 % el día quedó corto de comida. La línea azul es el promedio de los últimos 7 días. Usa la ingesta estimada: el menú, con la variante sin entreno, el doble turno y las comidas fuera del plan de registros/ingesta.csv.</p>
+    <div class="legend">
+      <span><i class="key-rect" style="background:var(--s-neutral)"></i>Bajo 20 %</span>
+      <span><i class="key-rect" style="background:var(--good)"></i>20–25 %</span>
+      <span><i class="key-rect" style="background:var(--warning)"></i>25–35 %</span>
+      <span><i class="key-rect" style="background:var(--critical)"></i>Sobre 35 %</span>
+      <span><i class="key-line" style="background:var(--s-blue-strong)"></i>Últimos 7 días</span>
+      <span><i class="key-rect" style="background:var(--band-goal)"></i>Zona recomendada</span>
+    </div>
+    <div class="chart" id="c-deficit"></div>
+  </section>
+
+  <section class="panel">
+    <h2>Composición corporal</h2>
+    <p class="desc">% de grasa (eje izquierdo) y masa libre de grasa en kg (eje derecho) de cada pesaje, cada uno con su meta: bajar al 25 % de grasa sin que la masa libre de grasa baje de <span class="ffm-min"></span> kg. La bioimpedancia confunde el agua con grasa y músculo, así que los valores se mueven con el peso del día: mira la tendencia.</p>
+    <p class="comp-title" id="comp-summary"></p>
+    <div class="legend">
+      <span><i class="key-line" style="background:var(--s-orange)"></i>% de grasa · eje izquierdo</span>
+      <span><i class="key-dash" style="border-color:var(--s-orange)"></i>Meta 25 %</span>
+      <span><i class="key-line" style="background:var(--s-aqua)"></i>Masa libre de grasa (kg) · eje derecho</span>
+      <span><i class="key-dash" style="border-color:var(--s-aqua)"></i><span class="ffm-min" data-fmt="Mínimo {} kg"></span></span>
+    </div>
+    <div class="chart" id="c-comp"></div>
+  </section>
+
+  <div class="grid2">
+    <section class="panel">
+      <h2>Presión arterial</h2>
+      <p class="desc">Promedio de 3 lecturas (modo x3 del Withings). Banda gris: tu rango habitual, 110–120 / 70–80. Sobre 140/90 de forma repetida o bajo 90/60 con mareos: médico.</p>
+      <div class="legend">
+        <span><i class="key-line" style="background:var(--s-blue)"></i>Sistólica</span>
+        <span><i class="key-line" style="background:var(--s-orange)"></i>Diastólica</span>
+        <span><i class="key-dash" style="border-color:var(--critical)"></i>Umbrales de derivación</span>
+      </div>
+      <div class="chart" id="c-bp"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Recuperación</h2>
+      <p class="desc"><span class="rec-only">Recovery de Garmin por noche y HRV.</span><span class="norec-only">HRV por noche según Garmin.</span> El plan pide revisar si el promedio de 7 días de la HRV baja de 38,4 ms<span class="rec-only"> o si hay 2 o más días en rojo en la semana</span>.</p>
+      <div class="legend rec-only">
+        <span><i class="key-rect" style="background:var(--good)"></i>Verde ≥67%</span>
+        <span><i class="key-rect" style="background:var(--warning)"></i>Amarilla 34–66%</span>
+        <span><i class="key-rect" style="background:var(--critical)"></i>Roja &lt;34%</span>
+      </div>
+      <div class="chart rec-only" id="c-rec"></div>
+      <div class="legend hrv-only">
+        <span><i class="key-dot" style="background:var(--s-violet)"></i>HRV diaria</span>
+        <span><i class="key-line" style="background:var(--s-violet)"></i>Promedio 7 días</span>
+        <span><i class="key-dash" style="border-color:var(--critical)"></i>38,4 ms</span>
+      </div>
+      <div class="chart hrv-only" id="c-hrv"></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="panel">
+      <h2>Pasos</h2>
+      <p class="desc">Pasos por día según Garmin. El plan pide al menos 8.000 al día. El día en curso va en color tenue (incompleto).</p>
+      <div class="legend">
+        <span><i class="key-rect" style="background:var(--s-aqua)"></i>Meta cumplida</span>
+        <span><i class="key-rect" style="background:var(--s-neutral)"></i>Bajo la meta</span>
+        <span><i class="key-dash" style="border-color:var(--ink-2)"></i>8.000 pasos</span>
+      </div>
+      <div class="chart" id="c-steps"></div>
+    </section>
+
+    <section class="panel">
+      <h2>Sueño</h2>
+      <p class="desc">Horas dormidas por noche según Garmin. El plan pide revisar si hay varios días con menos de 6 horas.</p>
+      <div class="legend">
+        <span><i class="key-rect" style="background:var(--s-blue)"></i>Horas de sueño</span>
+        <span><i class="key-dash" style="border-color:var(--warning)"></i>6 h</span>
+      </div>
+      <div class="chart" id="c-sleep"></div>
+    </section>
+  </div>
+
+  <div class="grid2">
+    <section class="panel seg-panel">
+      <h2>Músculo por segmento</h2>
+      <p class="desc seg-desc"></p>
+      <div class="legend">
+        <span><i class="key-dot" style="background:var(--s-aqua)"></i>Músculo (kg)</span>
+        <span>Más intenso = más músculo sobre el estándar</span>
+      </div>
+      <div id="fig-seg-muscle"></div>
+      <p class="desc">Junto al valor va el cambio desde el lunes <span class="base-lbl"></span> (la base elegida arriba), en kg; abajo, el % del estándar que calcula la pesa (estándar: 80–115 % en brazos y 90–110 % en tronco y piernas) y su evaluación: Bajo, Normal o Alto (en músculo, Alto es bueno). En los segmentos en Normal va cuánto falta para pasar a Alto (en los brazos, ~0,1 kg: menos que el ruido de la pesa).</p>
+      <details>
+        <summary>Tabla</summary>
+        <div class="table-wrap"><table id="seg-table-muscle"></table></div>
+      </details>
+    </section>
+
+    <section class="panel seg-panel">
+      <h2>Grasa por segmento</h2>
+      <p class="desc seg-desc"></p>
+      <div class="legend">
+        <span><i class="key-dot" style="background:var(--s-orange)"></i>Grasa (kg)</span>
+        <span>Más intenso = más grasa sobre el estándar</span>
+      </div>
+      <div id="fig-seg-fat"></div>
+      <p class="desc">Junto al valor va el cambio desde el lunes <span class="base-lbl"></span> (la base elegida arriba), en kg; abajo, el % del estándar que calcula la pesa (estándar: 80–160 %), su evaluación y cuántos kg faltan para quedar en Normal (160 % del estándar). La grasa por segmento es una estimación de la pesa.</p>
+      <details>
+        <summary>Tabla</summary>
+        <div class="table-wrap"><table id="seg-table-fat"></table></div>
+      </details>
+    </section>
+  </div>
+
+  <section class="panel">
+    <details>
+      <summary>Datos por día</summary>
+      <div class="table-wrap"><table id="data-table"></table></div>
+    </details>
+  </section>
+
+  <footer>
+    <span id="gen"></span>
+    <span>Fuentes: pesa Fitdays (API no oficial) y Garmin (CSV). Rangos y umbrales del plan <span id="plan-ver"></span>.</span>
+  </footer>
+</div>
+
+<script type="application/json" id="data">{"generated":"2026-11-05 19:51","today":"2026-11-05","planStart":"2026-10-19","day0":"2026-10-18","dataStart":"2026-10-12","plan":{"goalLow":66.5,"goalHigh":68.0,"tolerance":1.0,"hrvMin":38.4,"sleepMin":6,"stepsMin":8000,"visceralGoal":7,"fatGoal":25,"ffmMin":49.5,"bpUsual":[110,120,70,80],"bpHigh":[140,90],"bpLow":[90,60],"doubleExtra":0,"whoopFactor":1.13,"whoopFactorRange":[1.05,1.2],"deficitGoal":[20,25],"deficitHigh":35,"version":"v1.1","ref":[["2026-10-19",75.3],["2026-10-26",74.9],["2026-11-02",74.4],["2026-11-09",74.0],["2026-11-16",73.5],["2026-11-30",72.6],["2026-12-28",70.8],["2027-02-15",67.7]],"goalDate":"2027-02-15","intake":[["2026-10-12",1690]],"intakeDays":{"2026-10-12":{"kcal":1690,"src":"menú"},"2026-10-13":{"kcal":1690,"src":"menú"},"2026-10-14":{"kcal":1690,"src":"menú"},"2026-10-15":{"kcal":1690,"src":"menú"},"2026-10-16":{"kcal":1690,"src":"menú"},"2026-10-17":{"kcal":1690,"src":"menú"},"2026-10-18":{"kcal":1690,"src":"menú"},"2026-10-19":{"kcal":1690,"src":"menú"},"2026-10-20":{"kcal":1690,"src":"menú"},"2026-10-21":{"kcal":1690,"src":"menú"},"2026-10-22":{"kcal":1690,"src":"menú"},"2026-10-23":{"kcal":1690,"src":"menú"},"2026-10-24":{"kcal":2590.0,"src":"cena fuera: pizza y postre (sodio ~2.400 mg)"},"2026-10-25":{"kcal":1690,"src":"menú"},"2026-10-26":{"kcal":1690,"src":"menú"},"2026-10-27":{"kcal":1690,"src":"menú"},"2026-10-28":{"kcal":1690,"src":"menú"},"2026-10-29":{"kcal":1690,"src":"menú"},"2026-10-30":{"kcal":1690,"src":"menú"},"2026-10-31":{"kcal":2340.0,"src":"cumpleaños: torta y empanadas (sodio ~1.900 mg)"},"2026-11-01":{"kcal":1690,"src":"menú"},"2026-11-02":{"kcal":1690,"src":"menú"},"2026-11-03":{"kcal":1690,"src":"menú"}},"milestones":[["2026-10-25","7 días",74.9,75.9],["2026-11-02","15 días",74.4,75.4],["2026-11-17","30 días",73.4,74.4],["2026-12-17","60 días",71.5,72.5],["2027-01-16","90 días",69.6,70.6]],"workouts":[{"tipo":"strength_training","nombre":"Fuerza","color":"--s-violet","etiqueta":"fuerza"},{"tipo":"running","nombre":"Trote","color":"--s-orange","etiqueta":"trote"},{"tipo":"walking","nombre":"Caminata","color":"--s-blue","sesion":false}],"noSession":["Caminata"],"device":"Garmin","bpSource":false},"weigh":[{"d":"2026-10-12","t":"07:39","w":75.78,"fatPct":32.9,"fatKg":24.9,"ffmKg":50.9,"visceral":7.0,"muscleKg":48.3,"skmKg":27.0,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":null,"avg7p":null,"avg7n":1},{"d":"2026-10-13","t":"07:08","w":75.95,"fatPct":33.2,"fatKg":25.2,"ffmKg":50.7,"visceral":7.0,"muscleKg":48.1,"skmKg":26.9,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":null,"avg7p":75.87,"avg7n":2},{"d":"2026-10-14","t":"07:23","w":75.89,"fatPct":32.8,"fatKg":24.9,"ffmKg":51.0,"visceral":7.0,"muscleKg":48.4,"skmKg":27.1,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":null,"avg7p":75.87,"avg7n":3},{"d":"2026-10-15","t":"07:11","w":74.98,"fatPct":32.9,"fatKg":24.7,"ffmKg":50.3,"visceral":7.0,"muscleKg":47.7,"skmKg":26.7,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":null,"avg7p":75.65,"avg7n":4},{"d":"2026-10-16","t":"07:16","w":74.56,"fatPct":32.2,"fatKg":24.0,"ffmKg":50.6,"visceral":7.0,"muscleKg":48.0,"skmKg":26.9,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":75.43,"avg7p":null,"avg7n":5},{"d":"2026-10-17","t":"07:12","w":75.34,"fatPct":33.6,"fatKg":25.3,"ffmKg":50.0,"visceral":7.0,"muscleKg":47.4,"skmKg":26.5,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":75.42,"avg7p":null,"avg7n":6},{"d":"2026-10-18","t":"07:26","w":74.43,"fatPct":32.5,"fatKg":24.2,"ffmKg":50.2,"visceral":7.0,"muscleKg":47.6,"skmKg":26.7,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":75.28,"avg7p":null,"avg7n":7},{"d":"2026-10-19","t":"07:08","w":74.29,"fatPct":33.1,"fatKg":24.6,"ffmKg":49.7,"visceral":7.0,"muscleKg":47.1,"skmKg":26.4,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":75.06,"avg7p":null,"avg7n":7},{"d":"2026-10-20","t":"07:12","w":74.38,"fatPct":32.9,"fatKg":24.5,"ffmKg":49.9,"visceral":7.0,"muscleKg":47.3,"skmKg":26.5,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":74.84,"avg7p":null,"avg7n":7},{"d":"2026-10-21","t":"07:30","w":74.02,"fatPct":32.6,"fatKg":24.1,"ffmKg":49.9,"visceral":7.0,"muscleKg":47.3,"skmKg":26.5,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":74.57,"avg7p":null,"avg7n":7},{"d":"2026-10-22","t":"07:16","w":74.09,"fatPct":31.9,"fatKg":23.6,"ffmKg":50.5,"visceral":7.0,"muscleKg":47.9,"skmKg":26.8,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":74.44,"avg7p":null,"avg7n":7},{"d":"2026-10-23","t":"07:25","w":74.12,"fatPct":32.1,"fatKg":23.8,"ffmKg":50.3,"visceral":7.0,"muscleKg":47.7,"skmKg":26.7,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":74.38,"avg7p":null,"avg7n":7},{"d":"2026-10-24","t":"07:30","w":74.19,"fatPct":32.9,"fatKg":24.4,"ffmKg":49.8,"visceral":7.0,"muscleKg":47.2,"skmKg":26.4,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":74.22,"avg7p":null,"avg7n":7},{"d":"2026-10-25","t":"07:08","w":74.39,"fatPct":32.3,"fatKg":24.0,"ffmKg":50.4,"visceral":7.0,"muscleKg":47.8,"skmKg":26.8,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":74.21,"avg7p":null,"avg7n":7},{"d":"2026-10-26","t":"07:28","w":73.15,"fatPct":31.3,"fatKg":22.9,"ffmKg":50.3,"visceral":7.0,"muscleKg":47.7,"skmKg":26.7,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":74.05,"avg7p":null,"avg7n":7},{"d":"2026-10-27","t":"07:21","w":73.94,"fatPct":31.9,"fatKg":23.6,"ffmKg":50.3,"visceral":7.0,"muscleKg":47.7,"skmKg":26.7,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":73.99,"avg7p":null,"avg7n":7},{"d":"2026-10-28","t":"07:10","w":73.47,"fatPct":32.5,"fatKg":23.9,"ffmKg":49.6,"visceral":7.0,"muscleKg":47.0,"skmKg":26.3,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":73.91,"avg7p":null,"avg7n":7},{"d":"2026-10-29","t":"07:19","w":73.11,"fatPct":31.5,"fatKg":23.0,"ffmKg":50.1,"visceral":7.0,"muscleKg":47.5,"skmKg":26.6,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":73.77,"avg7p":null,"avg7n":7},{"d":"2026-10-30","t":"07:06","w":72.8,"fatPct":31.5,"fatKg":22.9,"ffmKg":49.9,"visceral":7.0,"muscleKg":47.3,"skmKg":26.5,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":73.58,"avg7p":null,"avg7n":7},{"d":"2026-10-31","t":"07:28","w":72.96,"fatPct":31.5,"fatKg":23.0,"ffmKg":50.0,"visceral":7.0,"muscleKg":47.4,"skmKg":26.5,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":73.4,"avg7p":null,"avg7n":7},{"d":"2026-11-01","t":"07:10","w":74.01,"fatPct":31.8,"fatKg":23.5,"ffmKg":50.5,"visceral":7.0,"muscleKg":47.9,"skmKg":26.8,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":73.35,"avg7p":null,"avg7n":7},{"d":"2026-11-02","t":"07:10","w":73.25,"fatPct":32.1,"fatKg":23.5,"ffmKg":49.7,"visceral":7.0,"muscleKg":47.1,"skmKg":26.4,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":73.36,"avg7p":null,"avg7n":7},{"d":"2026-11-03","t":"07:14","w":73.35,"fatPct":31.5,"fatKg":23.1,"ffmKg":50.2,"visceral":7.0,"muscleKg":47.6,"skmKg":26.7,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":73.28,"avg7p":null,"avg7n":7},{"d":"2026-11-04","t":"07:11","w":72.94,"fatPct":30.7,"fatKg":22.4,"ffmKg":50.5,"visceral":7.0,"muscleKg":47.9,"skmKg":26.8,"src":"fitdays","seg":{"left_arm":[null,null,null,null],"right_arm":[null,null,null,null],"trunk":[null,null,null,null],"left_leg":[null,null,null,null],"right_leg":[null,null,null,null]},"avg7":73.2,"avg7p":null,"avg7n":7}],"history":[{"d":"2026-10-12","n":1,"open":false,"w":75.78,"muscleKg":48.3,"skmKg":27.0,"fatKg":24.9,"fatPct":32.9},{"d":"2026-10-19","n":7,"open":false,"w":75.06,"muscleKg":47.76,"skmKg":26.74,"fatKg":24.7,"fatPct":32.9},{"d":"2026-10-26","n":7,"open":false,"w":74.05,"muscleKg":47.56,"skmKg":26.63,"fatKg":23.9,"fatPct":32.29},{"d":"2026-11-02","n":7,"open":false,"w":73.36,"muscleKg":47.41,"skmKg":26.54,"fatKg":23.34,"fatPct":31.83},{"d":"2026-11-09","n":2,"open":true,"w":73.14,"muscleKg":47.75,"skmKg":26.75,"fatKg":22.75,"fatPct":31.1}],"whoop":[{"d":"2026-10-12","rec":null,"hrv":51.6,"rhr":57.0,"sleep":7.55,"kcal":2145.0,"kcalRaw":2145.0,"cycleH":null,"strain":null,"complete":true,"steps":11107.0,"workouts":"strength_training 60min 230kcal","wo":[["Fuerza",60,230]],"hrv7":null},{"d":"2026-10-13","rec":null,"hrv":42.3,"rhr":56.0,"sleep":8.03,"kcal":2273.0,"kcalRaw":2273.0,"cycleH":null,"strain":null,"complete":true,"steps":8738.0,"workouts":"running 45min 390kcal","wo":[["Trote",45,390]],"hrv7":null},{"d":"2026-10-14","rec":null,"hrv":38.5,"rhr":57.0,"sleep":6.52,"kcal":2035.0,"kcalRaw":2035.0,"cycleH":null,"strain":null,"complete":true,"steps":9152.0,"workouts":"strength_training 62min 240kcal","wo":[["Fuerza",62,240]],"hrv7":null},{"d":"2026-10-15","rec":null,"hrv":44.4,"rhr":57.0,"sleep":7.35,"kcal":2210.0,"kcalRaw":2210.0,"cycleH":null,"strain":null,"complete":true,"steps":7778.0,"workouts":"running 44min 380kcal","wo":[["Trote",44,380]],"hrv7":null},{"d":"2026-10-16","rec":null,"hrv":43.6,"rhr":55.0,"sleep":6.55,"kcal":2124.0,"kcalRaw":2124.0,"cycleH":null,"strain":null,"complete":true,"steps":11560.0,"workouts":"strength_training 58min 220kcal","wo":[["Fuerza",58,220]],"hrv7":44.08},{"d":"2026-10-17","rec":null,"hrv":44.7,"rhr":53.0,"sleep":8.37,"kcal":2297.0,"kcalRaw":2297.0,"cycleH":null,"strain":null,"complete":true,"steps":11675.0,"workouts":"running 78min 640kcal","wo":[["Trote",78,640]],"hrv7":44.18},{"d":"2026-10-18","rec":null,"hrv":42.3,"rhr":53.0,"sleep":6.62,"kcal":1993.0,"kcalRaw":1993.0,"cycleH":null,"strain":null,"complete":true,"steps":9433.0,"workouts":"","wo":[],"hrv7":43.91},{"d":"2026-10-19","rec":null,"hrv":39.9,"rhr":53.0,"sleep":6.77,"kcal":2039.0,"kcalRaw":2039.0,"cycleH":null,"strain":null,"complete":true,"steps":10457.0,"workouts":"strength_training 60min 230kcal","wo":[["Fuerza",60,230]],"hrv7":42.24},{"d":"2026-10-20","rec":null,"hrv":40.8,"rhr":56.0,"sleep":6.97,"kcal":2282.0,"kcalRaw":2282.0,"cycleH":null,"strain":null,"complete":true,"steps":6284.0,"workouts":"running 45min 390kcal","wo":[["Trote",45,390]],"hrv7":42.03},{"d":"2026-10-21","rec":null,"hrv":41.2,"rhr":58.0,"sleep":6.12,"kcal":2246.0,"kcalRaw":2246.0,"cycleH":null,"strain":null,"complete":true,"steps":11335.0,"workouts":"strength_training 62min 240kcal","wo":[["Fuerza",62,240]],"hrv7":42.41},{"d":"2026-10-22","rec":null,"hrv":50.1,"rhr":58.0,"sleep":8.33,"kcal":2157.0,"kcalRaw":2157.0,"cycleH":null,"strain":null,"complete":true,"steps":10104.0,"workouts":"running 44min 380kcal","wo":[["Trote",44,380]],"hrv7":43.23},{"d":"2026-10-23","rec":null,"hrv":42.3,"rhr":53.0,"sleep":7.12,"kcal":2200.0,"kcalRaw":2200.0,"cycleH":null,"strain":null,"complete":true,"steps":8964.0,"workouts":"strength_training 58min 220kcal","wo":[["Fuerza",58,220]],"hrv7":43.04},{"d":"2026-10-24","rec":null,"hrv":40.2,"rhr":57.0,"sleep":6.6,"kcal":2450.0,"kcalRaw":2450.0,"cycleH":null,"strain":null,"complete":true,"steps":11397.0,"workouts":"running 78min 640kcal","wo":[["Trote",78,640]],"hrv7":42.4},{"d":"2026-10-25","rec":null,"hrv":49.7,"rhr":51.0,"sleep":6.87,"kcal":2087.0,"kcalRaw":2087.0,"cycleH":null,"strain":null,"complete":true,"steps":7125.0,"workouts":"","wo":[],"hrv7":43.46},{"d":"2026-10-26","rec":null,"hrv":42.1,"rhr":56.0,"sleep":5.55,"kcal":2176.0,"kcalRaw":2176.0,"cycleH":null,"strain":null,"complete":true,"steps":7956.0,"workouts":"strength_training 60min 230kcal","wo":[["Fuerza",60,230]],"hrv7":43.77},{"d":"2026-10-27","rec":null,"hrv":46.2,"rhr":55.0,"sleep":7.17,"kcal":2247.0,"kcalRaw":2247.0,"cycleH":null,"strain":null,"complete":true,"steps":8994.0,"workouts":"running 45min 390kcal","wo":[["Trote",45,390]],"hrv7":44.54},{"d":"2026-10-28","rec":null,"hrv":43.5,"rhr":55.0,"sleep":6.97,"kcal":2117.0,"kcalRaw":2117.0,"cycleH":null,"strain":null,"complete":true,"steps":9805.0,"workouts":"strength_training 62min 240kcal","wo":[["Fuerza",62,240]],"hrv7":44.87},{"d":"2026-10-29","rec":null,"hrv":38.1,"rhr":56.0,"sleep":6.82,"kcal":2162.0,"kcalRaw":2162.0,"cycleH":null,"strain":null,"complete":true,"steps":11317.0,"workouts":"running 44min 380kcal","wo":[["Trote",44,380]],"hrv7":43.16},{"d":"2026-10-30","rec":null,"hrv":46.7,"rhr":54.0,"sleep":7.48,"kcal":2169.0,"kcalRaw":2169.0,"cycleH":null,"strain":null,"complete":true,"steps":7673.0,"workouts":"strength_training 58min 220kcal","wo":[["Fuerza",58,220]],"hrv7":43.79},{"d":"2026-10-31","rec":null,"hrv":46.4,"rhr":54.0,"sleep":7.3,"kcal":2456.0,"kcalRaw":2456.0,"cycleH":null,"strain":null,"complete":true,"steps":10069.0,"workouts":"running 78min 640kcal","wo":[["Trote",78,640]],"hrv7":44.67},{"d":"2026-11-01","rec":null,"hrv":46.5,"rhr":55.0,"sleep":6.48,"kcal":1923.0,"kcalRaw":1923.0,"cycleH":null,"strain":null,"complete":true,"steps":8485.0,"workouts":"","wo":[],"hrv7":44.21},{"d":"2026-11-02","rec":null,"hrv":29.8,"rhr":54.0,"sleep":7.57,"kcal":2280.0,"kcalRaw":2280.0,"cycleH":null,"strain":null,"complete":true,"steps":8551.0,"workouts":"strength_training 60min 230kcal","wo":[["Fuerza",60,230]],"hrv7":42.46},{"d":"2026-11-03","rec":null,"hrv":38.8,"rhr":54.0,"sleep":5.82,"kcal":2256.0,"kcalRaw":2256.0,"cycleH":null,"strain":null,"complete":true,"steps":10765.0,"workouts":"running 45min 390kcal","wo":[["Trote",45,390]],"hrv7":41.4}],"bp":[],"segments":{"base":null,"last":null,"names":[["Brazo izq.","left_arm"],["Brazo der.","right_arm"],["Tronco","trunk"],["Pierna izq.","left_leg"],["Pierna der.","right_leg"]]}}</script>
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById("data").textContent);
+  const P = D.plan;
+  const DAY = 86400000;
+  const toN = (s) => Math.round(Date.parse(s + "T00:00:00Z") / DAY);
+  const fromN = (n) => new Date(n * DAY).toISOString().slice(0, 10);
+  const MONTHS = ["ene", "feb", "mar", "abr", "may", "jun", "jul", "ago", "sep", "oct", "nov", "dic"];
+  const dShort = (n) => { const d = new Date(n * DAY); return d.getUTCDate() + " " + MONTHS[d.getUTCMonth()]; };
+  const dLong = (s) => { const n = toN(s); const y = new Date(n * DAY).getUTCFullYear(); return dShort(n) + " " + y; };
+  const WEEKDAYS = ["dom", "lun", "mar", "mié", "jue", "vie", "sáb"];
+  const dWeek = (n) => WEEKDAYS[new Date(n * DAY).getUTCDay()] + " ";
+  const fmt = (v, k = 1) => v == null ? "–" : v.toLocaleString("es-CL", { minimumFractionDigits: k, maximumFractionDigits: k });
+  const sign = (v, k = 1) => (v > 0 ? "+" : v < 0 ? "−" : "±") + fmt(Math.abs(v), k);
+  const css = (name) => getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+
+  const TODAY = toN(D.today);
+  const START = toN(D.planStart);          // día 1
+  const FIRST = toN(D.dataStart);          // inicio de la semana 0 (historial)
+  // Base of the «desde …» comparisons: the first Monday with data (start of week 0) or day 1. Toggle in the header.
+  const BASES = { first: FIRST, start: START };
+  let baseKey = "start";
+  try { baseKey = BASES[localStorage.getItem("panel-base")] != null ? localStorage.getItem("panel-base") : "start"; } catch (e) { /* storage unavailable */ }
+  let DAY0 = BASES[baseKey];
+  const GOAL = toN(P.goalDate);
+  const weigh = D.weigh.filter((w) => w.w != null);
+  weigh.forEach((w) => { w.avg7all = w.avg7; }); // the generator's average (whole history), for the expenditure estimate
+  // 7-day average of the weight counting only weigh-ins from the base day on (same rules as generar.py: 5 weigh-ins
+  // for the full average, 2–4 for the partial one; estimated days don't count but get the value of their date).
+  function weighAverages() {
+    const real = weigh.filter((w) => w.src !== "estimado");
+    weigh.forEach((w) => {
+      const n = toN(w.d), vals = real.filter((x) => { const m = toN(x.d); return m >= DAY0 && m <= n && m > n - 7; }).map((x) => x.w);
+      const avg = vals.length ? Math.round(100 * vals.reduce((p, q) => p + q, 0) / vals.length) / 100 : null;
+      w.avg7 = n >= DAY0 && vals.length >= 5 ? avg : null;
+      w.avg7p = n >= DAY0 && w.avg7 == null && vals.length >= 2 ? avg : null;
+      w.avg7n = vals.length;
+    });
+  }
+  const whoop = D.whoop;
+  const bp = D.bp;
+  const byDay = (arr) => Object.fromEntries(arr.map((x) => [toN(x.d), x]));
+  const weighBy = byDay(weigh), whoopBy = byDay(whoop);
+  const bpBy = {}; bp.forEach((b) => { const n = toN(b.d); if (!bpBy[n] || b.t < bpBy[n].t) bpBy[n] = b; });
+
+  // Plan reference: linear interpolation between the plan's table rows.
+  const refPts = P.ref.map(([d, kg]) => [toN(d), kg]);
+  const refAt = (n) => {
+    if (!refPts.length || n < refPts[0][0] || n > refPts[refPts.length - 1][0]) return null;
+    for (let i = 1; i < refPts.length; i++) {
+      const [a, ya] = refPts[i - 1], [b, yb] = refPts[i];
+      if (n <= b) return ya + (yb - ya) * (n - a) / (b - a);
+    }
+    return null;
+  };
+  const miles = (P.milestones || []).map(([d, name, kg, ok]) => ({ n: toN(d), name, kg, ok }));
+  // Menu intake for a day; double-session days (2+ sessions) add the plan's dinner exception.
+  const isDouble = (n) => { const x = whoopBy[n]; return !!x && (x.wo || []).filter(([t]) => !P.noSession.includes(t)).length >= 2; };
+  // Estimated intake of a complete day (rest-day variant, double session, off-plan meals) comes precomputed in P.intakeDays.
+  const intakeNote = (n) => (P.intakeDays || {})[fromN(n)];
+  const intakeMenu = (n) => { let v = null; P.intake.forEach(([d, k]) => { if (n >= toN(d)) v = k; }); return v != null && isDouble(n) ? v + (P.doubleExtra || 0) : v; };
+  const intakeAt = (n) => { const e = intakeNote(n); return e ? e.kcal : intakeMenu(n); };
+  const intakeLabel = (n) => { const e = intakeNote(n); return e && e.src !== "menú" ? "ingesta (" + e.src + ")" : "ingesta del menú"; };
+  // Expenditure view: WHOOP as is, or corrected by the calibrated factor (analisis/gasto-calorico.md).
+  let corr = true;
+  try { corr = localStorage.getItem("corr") !== "0"; } catch (e) { /* storage unavailable */ }
+  const wf = () => corr ? P.whoopFactor : 1;
+  document.querySelectorAll(".wf").forEach((e) => { e.textContent = fmt(P.whoopFactor, 2); });
+  const recStatus = (r) => r == null ? null : r >= 67 ? "good" : r >= 34 ? "warning" : "critical";
+  const recName = { good: "verde", warning: "amarilla", critical: "roja" };
+
+  // ---------- readings strip ----------
+  function reading(label, valueHtml, chips, note) {
+    const el = document.createElement("div");
+    el.className = "reading";
+    const l = document.createElement("div"); l.className = "label"; l.textContent = label; el.append(l);
+    const v = document.createElement("div"); v.className = "value"; v.innerHTML = valueHtml; el.append(v);
+    chips.forEach(([cls, text]) => { const c = document.createElement("div"); c.className = "chip " + cls; c.textContent = text; el.append(c); });
+    if (note) { const n = document.createElement("div"); n.className = "note"; n.textContent = note; el.append(n); }
+    return el;
+  }
+  function buildReadings() {
+    const box = document.getElementById("readings");
+    const last = weigh[weigh.length - 1];
+    const day0 = weighBy[DAY0];
+    if (last) {
+      const withAvg = [...weigh].reverse().find((w) => w.avg7 != null && toN(w.d) === toN(last.d));
+      const val = withAvg ? withAvg.avg7 : last.w;
+      const ref = refAt(toN(last.d));
+      const chips = [];
+      if (ref != null) {
+        const diff = val - ref;
+        chips.push(diff <= P.tolerance ? ["good", (diff <= 0 ? fmt(-diff) + " kg bajo" : fmt(diff) + " kg sobre") + " la referencia"]
+                                       : ["warning", fmt(diff) + " kg sobre la referencia"]);
+      }
+      const note = withAvg ? "Promedio de 7 días · último pesaje " + fmt(last.w) + " kg"
+        : "Último pesaje (" + dShort(toN(last.d)) + "). El promedio de 7 días aparece con 5 pesajes en la semana.";
+      const nextMile = miles.find((m) => m.n >= toN(last.d));
+      if (nextMile) chips.push(["neutral", "Hito " + nextMile.name + " (" + dShort(nextMile.n) + "): ~" + fmt(nextMile.kg) + " kg"]);
+      box.append(reading(withAvg ? "Peso · prom. 7 días" : "Peso", fmt(val) + "<small>kg</small>", chips, note));
+
+      const fatChips = day0 && day0.fatPct != null ? [[last.fatPct <= day0.fatPct ? "good" : "neutral", sign(last.fatPct - day0.fatPct) + " pp desde el " + dShort(DAY0)]] : [];
+      box.append(reading("Grasa corporal", fmt(last.fatPct) + "<small>%</small>", fatChips, fmt(last.fatKg) + " kg · meta ≤" + P.fatGoal + "%"));
+      box.append(reading("Grasa visceral", fmt(last.visceral, 0), [[last.visceral <= P.visceralGoal ? "good" : "neutral", "Meta ≤" + P.visceralGoal]], "Grado de la pesa"));
+    }
+    const lastBp = bp[bp.length - 1];
+    if (lastBp) {
+      const high = lastBp.sys > P.bpHigh[0] || lastBp.dia > P.bpHigh[1];
+      const low = lastBp.sys < P.bpLow[0] || lastBp.dia < P.bpLow[1];
+      const chip = high ? ["critical", "Sobre " + P.bpHigh.join("/")] : low ? ["warning", "Bajo " + P.bpLow.join("/")] : ["good", "En rango"];
+      box.append(reading("Presión", fmt(lastBp.sys, 0) + "/" + fmt(lastBp.dia, 0) + "<small>mmHg</small>", [chip],
+        dShort(toN(lastBp.d)) + ", " + lastBp.t + " · pulso " + fmt(lastBp.pulse, 0)));
+    } else if (D.bp.length || P.bpSource) {
+      box.append(reading("Presión", "–", [["neutral", "Sin tomas"]], ""));
+    }
+    const lastW = [...whoop].reverse().find((w) => w.rec != null);
+    if (lastW) {
+      const st = recStatus(lastW.rec);
+      const hrvChip = lastW.hrv7 != null && lastW.hrv7 < P.hrvMin ? ["critical", "HRV 7 días bajo " + fmt(P.hrvMin)] : null;
+      box.append(reading("Recovery", fmt(lastW.rec, 0) + "<small>%</small>",
+        [[st, "Recovery " + recName[st]], ...(hrvChip ? [hrvChip] : [])],
+        "HRV " + fmt(lastW.hrv) + " ms · FC reposo " + fmt(lastW.rhr, 0) + " · " + dShort(toN(lastW.d))));
+    }
+    const stepDays = whoop.filter((w) => w.complete && w.steps != null).slice(-7);
+    if (stepDays.length) {
+      const avg = stepDays.reduce((s, w) => s + w.steps, 0) / stepDays.length;
+      const met = stepDays.filter((w) => w.steps >= P.stepsMin).length;
+      box.append(reading("Pasos · prom. 7 días", fmt(avg, 0),
+        [[met >= 5 ? "good" : "warning", met + " de " + stepDays.length + " días sobre " + fmt(P.stepsMin, 0)]],
+        "Último día completo: " + fmt(stepDays[stepDays.length - 1].steps, 0) + " (" + dShort(toN(stepDays[stepDays.length - 1].d)) + ")"));
+    }
+  }
+
+  // ---------- chart engine ----------
+  const NS = "http://www.w3.org/2000/svg";
+  const charts = [];
+  let domain = [TODAY - 29, TODAY];
+  let hover = null;
+
+  function niceTicks(min, max, count = 4) {
+    const span = max - min || 1;
+    const raw = span / count;
+    const mag = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * mag).find((s) => span / s <= count + 1) || 10 * mag;
+    const out = [];
+    for (let v = Math.ceil(min / step) * step; v <= max + 1e-9; v += step) out.push(+v.toFixed(6));
+    return { ticks: out, step };
+  }
+  function xTicks(a, b) {
+    const span = b - a, out = [];
+    if (span <= 45) { for (let n = a; n <= b; n++) if (new Date(n * DAY).getUTCDay() === 1) out.push(n); }
+    else if (span <= 120) { for (let n = a; n <= b; n++) { const d = new Date(n * DAY).getUTCDate(); if (d === 1 || d === 15) out.push(n); } }
+    else { for (let n = a; n <= b; n++) if (new Date(n * DAY).getUTCDate() === 1) out.push(n); }
+    return out;
+  }
+  const el = (tag, attrs, parent) => {
+    const e = document.createElementNS(NS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (parent) parent.append(e);
+    return e;
+  };
+
+  function makeChart(id, spec) {
+    const root = document.getElementById(id);
+    if (spec.title) { const t = document.createElement("p"); t.className = "sub-title"; t.textContent = spec.title; root.append(t); }
+    const holder = document.createElement("div"); holder.style.position = "relative"; root.append(holder);
+    const tip = document.createElement("div"); tip.className = "tip"; tip.hidden = true; holder.append(tip);
+    const c = { root, holder, tip, spec, svg: null, sx: null, cross: null, w: 0 };
+    c.render = () => {
+      const W = holder.clientWidth || 600, H = spec.height;
+      const m = { l: 38, r: spec.right || 14, t: 10, b: 24 };
+      const [a, b] = domain;
+      const pad = spec.bars ? 0.5 : 0;
+      const sx = (n) => m.l + (n - (a - pad)) / ((b + pad) - (a - pad)) * (W - m.l - m.r);
+      const [y0, y1] = spec.y(a, b);
+      const sy = (v) => m.t + (1 - (v - y0) / (y1 - y0)) * (H - m.t - m.b);
+      const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, tabindex: 0, role: "img", "aria-label": spec.label });
+      // pre-plan shading
+      if (a < START) el("rect", { x: sx(Math.max(a, a - pad)) , y: m.t, width: Math.max(0, Math.min(sx(START - pad), W - m.r) - sx(a - pad) ), height: H - m.t - m.b, fill: "var(--pre)" }, svg);
+      // grid + y labels
+      const { ticks } = niceTicks(y0, y1, spec.yCount || 4);
+      ticks.forEach((v) => {
+        el("line", { x1: m.l, x2: W - m.r, y1: sy(v), y2: sy(v), stroke: "var(--grid)", "stroke-width": 1 }, svg);
+        const t = el("text", { x: m.l - 6, y: sy(v) + 3.5, "text-anchor": "end" }, svg);
+        t.textContent = spec.yFmt ? spec.yFmt(v) : fmt(v, 0);
+      });
+      // x labels
+      xTicks(a, b).forEach((n) => {
+        el("line", { x1: sx(n), x2: sx(n), y1: H - m.b, y2: H - m.b + 4, stroke: "var(--axis)" }, svg);
+        const t = el("text", { x: sx(n), y: H - 6, "text-anchor": "middle" }, svg);
+        t.textContent = dShort(n);
+      });
+      el("line", { x1: m.l, x2: W - m.r, y1: H - m.b, y2: H - m.b, stroke: "var(--axis)" }, svg);
+      if (START > a && START < b) {
+        el("line", { x1: sx(START), x2: sx(START), y1: m.t, y2: H - m.b, stroke: "var(--axis)", "stroke-dasharray": "2 3" }, svg);
+        if (spec.startLabel) { const t = el("text", { x: sx(START) + 5, y: m.t + 10, class: "lbl" }, svg); t.textContent = "Día 1"; }
+      }
+      const g = el("g", {}, svg);
+      spec.draw(g, sx, sy, { a, b, W, H, m, y0, y1 });
+      c.cross = el("line", { y1: m.t, y2: H - m.b, stroke: "var(--ink-2)", "stroke-width": 1, opacity: 0, "pointer-events": "none" }, svg);
+      const hit = el("rect", { x: m.l, y: 0, width: W - m.l - m.r, height: H, fill: "transparent" }, svg);
+      const pick = (ev) => {
+        const r = svg.getBoundingClientRect();
+        const px = (ev.clientX - r.left) * (W / r.width);
+        const n = Math.round((a - pad) + (px - m.l) / (W - m.l - m.r) * ((b + pad) - (a - pad)));
+        setHover(Math.min(b, Math.max(a, n)), c);
+      };
+      hit.addEventListener("pointermove", pick);
+      hit.addEventListener("pointerdown", pick);
+      hit.addEventListener("pointerleave", () => setHover(null, null));
+      svg.addEventListener("keydown", (ev) => {
+        if (ev.key !== "ArrowLeft" && ev.key !== "ArrowRight") return;
+        ev.preventDefault();
+        const n = hover == null ? b : hover + (ev.key === "ArrowLeft" ? -1 : 1);
+        setHover(Math.min(b, Math.max(a, n)), c);
+      });
+      svg.addEventListener("blur", () => setHover(null, null));
+      if (c.svg) c.svg.replaceWith(svg); else holder.prepend(svg);
+      c.svg = svg; c.sx = sx; c.W = W;
+      c.updateHover(null);
+    };
+    c.updateHover = (active) => {
+      if (hover == null) { c.cross.setAttribute("opacity", 0); c.tip.hidden = true; return; }
+      const x = c.sx(hover);
+      c.cross.setAttribute("x1", x); c.cross.setAttribute("x2", x); c.cross.setAttribute("opacity", 0.5);
+      if (active !== c) { c.tip.hidden = true; return; }
+      const rows = spec.tip(hover);
+      c.tip.replaceChildren();
+      const d = document.createElement("div"); d.className = "t-date"; d.textContent = dWeek(hover) + dLong(fromN(hover)); c.tip.append(d);
+      if (!rows || !rows.length) {
+        const e = document.createElement("div"); e.className = "n"; e.textContent = "Sin datos este día"; e.style.color = "var(--muted)"; c.tip.append(e);
+      } else rows.forEach(([color, label, value]) => {
+        const r = document.createElement("div"); r.className = "t-row";
+        const k = document.createElement("i"); k.className = "t-key"; k.style.background = color || "transparent";
+        const v = document.createElement("b"); v.textContent = value;
+        const n = document.createElement("span"); n.className = "n"; n.textContent = label;
+        r.append(k, v, n); c.tip.append(r);
+      });
+      c.tip.hidden = false;
+      const scale = c.svg.getBoundingClientRect().width / c.W;
+      const px = x * scale, tw = c.tip.offsetWidth;
+      c.tip.style.left = (px + 14 + tw > c.holder.clientWidth ? Math.max(0, px - 14 - tw) : px + 14) + "px";
+      c.tip.style.top = "6px";
+    };
+    charts.push(c);
+    return c;
+  }
+  function setHover(n, active) { hover = n; charts.forEach((c) => c.updateHover(active)); }
+
+  const inDom = (arr, a, b) => arr.filter((x) => { const n = toN(x.d); return n >= a && n <= b; });
+  const extent = (vals, padFrac = 0.08, minSpan = 1) => {
+    vals = vals.filter((v) => v != null);
+    if (!vals.length) return [0, 1];
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    if (hi - lo < minSpan) { const mid = (hi + lo) / 2; lo = mid - minSpan / 2; hi = mid + minSpan / 2; }
+    const p = (hi - lo) * padFrac;
+    return [lo - p, hi + p];
+  };
+  const pathOf = (pts) => pts.map(([x, y], i) => (i ? "L" : "M") + x.toFixed(1) + " " + y.toFixed(1)).join("");
+  function dots(g, pts, color, r = 4, hollow = false) {
+    pts.forEach(([x, y]) => el("circle", { cx: x, cy: y, r, fill: hollow ? "var(--surface)" : color, stroke: hollow ? color : "var(--surface)", "stroke-width": 2 }, g));
+  }
+  function hline(g, sx, sy, a, b, v, color, label, ctx) {
+    el("line", { x1: ctx.m.l, x2: ctx.W - ctx.m.r, y1: sy(v), y2: sy(v), stroke: color, "stroke-width": 1.5, "stroke-dasharray": "5 4" }, g);
+    if (label) { const t = el("text", { x: ctx.W - ctx.m.r, y: sy(v) - 4, "text-anchor": "end", class: "lbl" }, g); t.textContent = label; }
+  }
+  function bar(g, x, y, w, h, color) {
+    if (h <= 0) return;
+    const r = Math.min(4, w / 2, h);
+    el("path", { d: `M${x} ${y + h}V${y + r}Q${x} ${y} ${x + r} ${y}H${x + w - r}Q${x + w} ${y} ${x + w} ${y + r}V${y + h}Z`, fill: color }, g);
+  }
+  const barW = (sx, ctx) => Math.max(2, Math.min(18, (sx(ctx.a + 1) - sx(ctx.a)) - 2));
+
+  // Weight
+  makeChart("c-weight", {
+    height: 280, startLabel: true, label: "Peso diario, promedio de 7 días y referencia del plan",
+    yFmt: (v) => fmt(v, v % 1 ? 1 : 0),
+    y: (a, b) => {
+      const vals = inDom(weigh, a, b).flatMap((w) => [w.w, w.avg7]);
+      for (let n = a; n <= b; n++) { const r = refAt(n); if (r != null) vals.push(r, r + P.tolerance); }
+      miles.filter((m) => m.n >= a && m.n <= b).forEach((m) => vals.push(m.kg, m.ok));
+      if (b >= GOAL - 30) vals.push(P.goalLow, P.goalHigh);
+      return extent(vals, 0.1, 2);
+    },
+    draw: (g, sx, sy, ctx) => {
+      const { a, b } = ctx;
+      if (P.goalLow < ctx.y1 && P.goalHigh > ctx.y0) {
+        const top = sy(Math.min(P.goalHigh, ctx.y1)), bot = sy(Math.max(P.goalLow, ctx.y0));
+        el("rect", { x: ctx.m.l, y: top, width: ctx.W - ctx.m.l - ctx.m.r, height: bot - top, fill: "var(--band-goal)" }, g);
+        const t = el("text", { x: ctx.m.l + 6, y: top + 13, class: "lbl" }, g); t.textContent = "Zona meta";
+      }
+      const refDays = []; for (let n = a; n <= b; n++) { const r = refAt(n); if (r != null) refDays.push([n, r]); }
+      if (refDays.length > 1) {
+        const up = refDays.map(([n, r]) => [sx(n), sy(r + P.tolerance)]);
+        const dn = refDays.map(([n, r]) => [sx(n), sy(r)]).reverse();
+        el("path", { d: pathOf(up) + "L" + pathOf(dn).slice(1) + "Z", fill: "var(--band-tol)" }, g);
+        el("path", { d: pathOf(refDays.map(([n, r]) => [sx(n), sy(r)])), fill: "none", stroke: "var(--ink-2)", "stroke-width": 1.5, "stroke-dasharray": "5 4" }, g);
+      }
+      miles.filter((m) => m.n >= a && m.n <= b).forEach((m) => {
+        const x = sx(m.n);
+        el("line", { x1: x, x2: x, y1: sy(m.ok), y2: sy(m.kg), stroke: "var(--accent)", "stroke-width": 3, "stroke-linecap": "round", opacity: 0.45 }, g);
+        el("rect", { x: x - 5, y: sy(m.kg) - 5, width: 10, height: 10, rx: 1.5, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2, transform: `rotate(45 ${x} ${sy(m.kg)})` }, g);
+        const t = el("text", { x, y: sy(m.ok) - 8, "text-anchor": "middle", class: "lbl" }, g); t.textContent = m.name;
+      });
+      const ws = inDom(weigh, a, b);
+      // Partial average (2–4 weigh-ins in the window): dashed and lighter, joined to the first full point.
+      const part = ws.filter((w) => w.avg7p != null).map((w) => [sx(toN(w.d)), sy(w.avg7p)]);
+      const firstFull = ws.find((w) => w.avg7 != null);
+      if (part.length && firstFull && toN(firstFull.d) - toN(ws.filter((w) => w.avg7p != null).slice(-1)[0].d) <= 7) part.push([sx(toN(firstFull.d)), sy(firstFull.avg7)]);
+      if (part.length > 1) el("path", { d: pathOf(part), fill: "none", stroke: "var(--s-blue-strong)", "stroke-width": 2, "stroke-dasharray": "4 4", opacity: 0.55, "stroke-linejoin": "round" }, g);
+      const avg = ws.filter((w) => w.avg7 != null).map((w) => [sx(toN(w.d)), sy(w.avg7)]);
+      if (avg.length > 1) el("path", { d: pathOf(avg), fill: "none", stroke: "var(--s-blue-strong)", "stroke-width": 2.5, "stroke-linejoin": "round" }, g);
+      dots(g, ws.filter((w) => w.src === "fitdays").map((w) => [sx(toN(w.d)), sy(w.w)]), "var(--s-blue)");
+      dots(g, ws.filter((w) => w.src !== "fitdays").map((w) => [sx(toN(w.d)), sy(w.w)]), "var(--s-blue)", 4, true);
+      const last = ws[ws.length - 1];
+      if (last) { const t = el("text", { x: sx(toN(last.d)) - 8, y: sy(last.w) - 10, "text-anchor": "end", class: "lbl" }, g); t.textContent = fmt(last.w) + " kg"; }
+    },
+    tip: (n) => {
+      const w = weighBy[n], r = refAt(n), rows = [];
+      if (w) rows.push([css("--s-blue"), w.src === "fitdays" ? "pesaje " + w.t : w.src === "estimado" ? "sin pesaje · estimado (promedio del día anterior y el siguiente)" : "pesaje (registro)", fmt(w.w, 2) + " kg"]);
+      if (w && r != null) rows.push([null, (w.avg7 != null ? "promedio 7 días" : "pesaje") + " contra la referencia", sign((w.avg7 ?? w.w) - r) + " kg"]);
+      return rows;
+    },
+  });
+
+  // Composition: stacked bars from 0, fat-free mass at the base and fat mass on top (the total is the weight).
+  // Composition: fat % (left axis) and fat-free mass in kg (right axis) of each weigh-in, each with its plan goal.
+  // Kg is used for the lean side because a lean-mass % mirrors the fat % and rises even when muscle is lost.
+  let cb; // set by setBase()
+  let ffmMap = (v) => v, ffmAxis = [0, 1]; // fat-free kg → position on the fat % scale, set by y()
+  document.querySelectorAll(".ffm-min").forEach((e) => (e.textContent = (e.dataset.fmt || "{}").replace("{}", fmt(P.ffmMin))));
+  function compSummary() {
+    const real = (w) => w.src !== "estimado" && w.fatPct != null && w.ffmKg != null;
+    const box = document.getElementById("comp-summary"), last = [...weigh].reverse().find(real);
+    if (!last) { box.textContent = ""; return; }
+    const b = weigh.find((w) => toN(w.d) >= DAY0 && real(w));
+    const dd = (v) => Math.abs(v) < 0.05 ? "±0" : sign(v);
+    box.textContent = "Pesaje del " + dShort(toN(last.d)) + ": grasa " + fmt(last.fatPct) + " %" +
+      (b && b !== last ? " (" + dd(last.fatPct - b.fatPct) + " pp desde el " + dShort(toN(b.d)) + ")" : "") + ", faltan " + fmt(last.fatPct - P.fatGoal) + " pp para el " + P.fatGoal + " % · masa libre de grasa " + fmt(last.ffmKg) + " kg" +
+      (b && b !== last ? " (" + dd(last.ffmKg - b.ffmKg) + ")" : "") + (last.ffmKg >= P.ffmMin ? ", sobre el mínimo de " : ", bajo el mínimo de ") + fmt(P.ffmMin) + " kg.";
+  }
+  makeChart("c-comp", {
+    height: 280, right: 44, label: "Porcentaje de grasa y masa libre de grasa por pesaje, con sus metas",
+    yFmt: (v) => fmt(v, v % 1 ? 1 : 0) + " %",
+    y: (a, b) => {
+      const ws = inDom(weigh, a, b);
+      const pv = [P.fatGoal, ...ws.map((w) => w.fatPct)].filter((v) => v != null);
+      const fv = [P.ffmMin, ...ws.map((w) => w.ffmKg)].filter((v) => v != null);
+      const [p0, p1] = extent(pv, 0.06, 2), [f0, f1] = extent(fv, 0.15, 2);
+      ffmAxis = [f0, f1];
+      ffmMap = (v) => p0 + (v - f0) * (p1 - p0) / (f1 - f0);
+      return [p0, p1];
+    },
+    draw: (g, sx, sy, ctx) => {
+      // Right axis (fat-free mass, kg).
+      niceTicks(ffmAxis[0], ffmAxis[1], 4).ticks.forEach((v) => {
+        if (v < ffmAxis[0] || v > ffmAxis[1]) return;
+        const t = el("text", { x: ctx.W - ctx.m.r + 6, y: sy(ffmMap(v)) + 3.5, fill: "var(--s-aqua)" }, g);
+        t.textContent = fmt(v, v % 1 ? 1 : 0);
+      });
+      const goal = (y, color, label, below) => {
+        el("line", { x1: ctx.m.l, x2: ctx.W - ctx.m.r, y1: y, y2: y, stroke: `var(${color})`, "stroke-width": 1.5, "stroke-dasharray": "5 4" }, g);
+        const t = el("text", { x: ctx.W - ctx.m.r - 4, y: below ? y + 13 : y - 5, "text-anchor": "end", class: "lbl", fill: `var(${color})` }, g); t.textContent = label;
+      };
+      goal(sy(P.fatGoal), "--s-orange", "Meta " + P.fatGoal + " % de grasa", false);
+      goal(sy(ffmMap(P.ffmMin)), "--s-aqua", "Mínimo " + fmt(P.ffmMin) + " kg", true);
+      const SERIES = [["fatPct", "--s-orange", (v) => v, (v) => fmt(v) + " %"], ["ffmKg", "--s-aqua", ffmMap, (v) => fmt(v) + " kg"]];
+      const ws = inDom(weigh, ctx.a, ctx.b), ends = [];
+      SERIES.forEach(([k, color, map, lbl]) => {
+        const pts = ws.filter((w) => w[k] != null).map((w) => [sx(toN(w.d)), sy(map(w[k])), w[k], w.src === "estimado"]);
+        if (pts.length > 1) el("path", { d: pathOf(pts), fill: "none", stroke: `var(${color})`, "stroke-width": 2, "stroke-linejoin": "round" }, g);
+        dots(g, pts.filter((q) => !q[3]), `var(${color})`);
+        dots(g, pts.filter((q) => q[3]), `var(${color})`, 4, true);
+        const last = pts[pts.length - 1];
+        if (last) ends.push([last[0], last[1], lbl(last[2]), color]);
+      });
+      if (ends.length === 2 && Math.abs(ends[0][1] - ends[1][1]) < 14) {
+        const mid = (ends[0][1] + ends[1][1]) / 2, up = ends[0][1] <= ends[1][1] ? 0 : 1;
+        ends[up][1] = mid - 7; ends[1 - up][1] = mid + 7;
+      }
+      ends.forEach(([x, y, text, color]) => { const t = el("text", { x: x + 8, y: y + 4, class: "lbl", fill: `var(${color})` }, g); t.textContent = text; });
+    },
+    tip: (n) => {
+      const w = weighBy[n];
+      if (!w) return [];
+      const rows = [];
+      const est = w.src === "estimado" ? " (estimado, sin pesaje)" : "";
+      if (w.fatPct != null) rows.push([css("--s-orange"), "grasa" + est, fmt(w.fatPct) + " %"]);
+      if (w.ffmKg != null) rows.push([css("--s-aqua"), "masa libre de grasa" + est, fmt(w.ffmKg) + " kg"]);
+      return rows;
+    },
+  });
+
+  // Blood pressure
+  makeChart("c-bp", {
+    height: 220, right: 30, label: "Presión arterial sistólica y diastólica",
+    y: (a, b) => { const v = inDom(bp, a, b).flatMap((x) => [x.sys, x.dia]); return [Math.min(60, ...v) - 2, Math.max(150, ...v) + 2]; },
+    yCount: 5,
+    draw: (g, sx, sy, ctx) => {
+      const [s1, s2, d1, d2] = P.bpUsual;
+      [[s1, s2], [d1, d2]].forEach(([lo, hi]) => el("rect", { x: ctx.m.l, y: sy(hi), width: ctx.W - ctx.m.l - ctx.m.r, height: sy(lo) - sy(hi), fill: "var(--band-usual)" }, g));
+      [[P.bpHigh[0], "var(--critical)"], [P.bpHigh[1], "var(--critical)"], [P.bpLow[0], "var(--warning)"], [P.bpLow[1], "var(--warning)"]].forEach(([v, c]) => {
+        el("line", { x1: ctx.m.l, x2: ctx.W - ctx.m.r, y1: sy(v), y2: sy(v), stroke: c, "stroke-width": 1, "stroke-dasharray": "4 4", opacity: 0.8 }, g);
+        const t = el("text", { x: ctx.W - ctx.m.r + 4, y: sy(v) + 3.5 }, g); t.textContent = v;
+      });
+      const pts = Object.entries(bpBy).map(([n, x]) => [+n, x]).filter(([n]) => n >= ctx.a && n <= ctx.b).sort((p, q) => p[0] - q[0]);
+      [["sys", "--s-blue"], ["dia", "--s-orange"]].forEach(([k, c]) => {
+        const xy = pts.map(([n, x]) => [sx(n), sy(x[k])]);
+        if (xy.length > 1) el("path", { d: pathOf(xy), fill: "none", stroke: `var(${c})`, "stroke-width": 2 }, g);
+        dots(g, xy, `var(${c})`);
+      });
+      if (!pts.length) { const t = el("text", { x: (ctx.W) / 2, y: ctx.H / 2, "text-anchor": "middle", class: "lbl" }, g); t.textContent = "Sin tomas en este rango"; }
+    },
+    tip: (n) => {
+      const x = bpBy[n]; if (!x) return [];
+      return [[css("--s-blue"), "sistólica", fmt(x.sys, 0) + " mmHg"], [css("--s-orange"), "diastólica", fmt(x.dia, 0) + " mmHg"], [null, "pulso · " + x.t, fmt(x.pulse, 0) + " lpm"]];
+    },
+  });
+
+  // Recovery bars
+  makeChart("c-rec", {
+    height: 150, bars: true, label: "Recovery diaria de " + P.device, yFmt: (v) => v + "%",
+    y: () => [0, 100],
+    draw: (g, sx, sy, ctx) => {
+      const w = barW(sx, ctx);
+      inDom(whoop, ctx.a, ctx.b).filter((x) => x.rec != null).forEach((x) => {
+        const n = toN(x.d); bar(g, sx(n) - w / 2, sy(x.rec), w, sy(0) - sy(x.rec), `var(--${recStatus(x.rec)})`);
+      });
+    },
+    tip: (n) => {
+      const x = whoopBy[n]; if (!x || x.rec == null) return [];
+      const st = recStatus(x.rec);
+      return [[css("--" + st), "recovery " + recName[st], fmt(x.rec, 0) + "%"], [null, "FC en reposo", fmt(x.rhr, 0) + " lpm"]];
+    },
+  });
+
+  // HRV
+  makeChart("c-hrv", {
+    height: 170, label: "HRV diaria y promedio de 7 días", yFmt: (v) => fmt(v, 0),
+    y: (a, b) => { const v = inDom(whoop, a, b).flatMap((x) => [x.hrv, x.hrv7]); v.push(P.hrvMin); return extent(v, 0.1, 6); },
+    draw: (g, sx, sy, ctx) => {
+      hline(g, sx, sy, ctx.a, ctx.b, P.hrvMin, "var(--critical)", fmt(P.hrvMin) + " ms", ctx);
+      const rows = inDom(whoop, ctx.a, ctx.b);
+      const daily = rows.filter((x) => x.hrv != null).map((x) => [sx(toN(x.d)), sy(x.hrv)]);
+      if (daily.length > 1) el("path", { d: pathOf(daily), fill: "none", stroke: "var(--s-violet)", "stroke-width": 1, opacity: 0.45 }, g);
+      const avg = rows.filter((x) => x.hrv7 != null).map((x) => [sx(toN(x.d)), sy(x.hrv7)]);
+      if (avg.length > 1) el("path", { d: pathOf(avg), fill: "none", stroke: "var(--s-violet)", "stroke-width": 2.5, "stroke-linejoin": "round" }, g);
+      dots(g, daily, "var(--s-violet)", 3);
+    },
+    tip: (n) => {
+      const x = whoopBy[n]; if (!x || x.hrv == null) return [];
+      const rows = [[css("--s-violet"), "HRV", fmt(x.hrv) + " ms"]];
+      if (x.hrv7 != null) rows.push([css("--s-violet"), "promedio 7 días", fmt(x.hrv7) + " ms"]);
+      return rows;
+    },
+  });
+
+  // Real expenditure from the weight trend: menu intake + 7-day-average weight lost × 7,700 kcal/kg, over the last
+  // 14 days. Week 1 (mostly water and glycogen) is skipped, so the first value appears with 7 days of window.
+  const KCAL_PER_KG = 7700, TDEE_WINDOW = 14, TDEE_MIN_DAYS = 7, TDEE_FROM = START;
+  const avg7By = Object.fromEntries(weigh.filter((w) => w.avg7all != null).map((w) => [toN(w.d), w.avg7all]));
+  const tdeeBy = {};
+  Object.keys(avg7By).map(Number).forEach((n) => {
+    for (let s = Math.max(TDEE_FROM, n - TDEE_WINDOW); s <= n - TDEE_MIN_DAYS; s++) {
+      if (avg7By[s] == null) continue;
+      let intake = 0, days = 0;
+      for (let k = s + 1; k <= n; k++) { const v = intakeAt(k); if (v != null) { intake += v; days++; } }
+      if (days) tdeeBy[n] = { kcal: intake / days + (avg7By[s] - avg7By[n]) * KCAL_PER_KG / (n - s), days: n - s };
+      break;
+    }
+  });
+  const hasTdee = Object.keys(tdeeBy).length > 0;
+  // Energy: stacked bars per complete day. The rest of the day outside workouts (WHOOP can't split basal from
+  // everyday activity), then each workout type on top in a fixed order and color.
+  const WO_TYPES = [...P.workouts.map((w) => [w.nombre, w.color]), ["Otro", "--s-blue-strong"]];
+  const woColor = Object.fromEntries(WO_TYPES);
+  const woKcal = (x) => { const t = {}; (x.wo || []).forEach(([type, , kcal]) => { t[type] = (t[type] || 0) + kcal; }); return t; };
+  makeChart("c-kcal", {
+    height: 210, bars: true, label: "Gasto diario por componente contra la ingesta estimada", yFmt: (v) => fmt(v, 0),
+    y: (a, b) => { const v = inDom(whoop, a, b).map((x) => x.kcal * wf()); v.push(0, ...P.intake.map(([, k]) => k)); for (let n = a; n <= b; n++) if (tdeeBy[n]) v.push(tdeeBy[n].kcal); return [0, Math.max(...v.filter((x) => x != null)) * 1.08]; },
+    draw: (g, sx, sy, ctx) => {
+      const w = barW(sx, ctx), GAP = 2, f = wf();
+      inDom(whoop, ctx.a, ctx.b).filter((x) => x.kcal != null).forEach((x) => {
+        const n = toN(x.d), x0 = sx(n) - w / 2, t = woKcal(x), gd = x.complete ? g : el("g", { opacity: 0.45 }, g);
+        const rest = x.kcal - Object.values(t).reduce((s, k) => s + k, 0);
+        const parts = [["--s-neutral", rest * f]];
+        WO_TYPES.forEach(([type, color]) => { if (t[type]) parts.push([color, t[type] * f]); });
+        let acc = 0;
+        parts.forEach(([color, kcal], i) => {
+          const y0 = sy(acc), y1 = sy(acc + kcal), top = i === parts.length - 1;
+          if (kcal <= 0) return;
+          const h = y0 - y1 - (i ? GAP : 0);
+          if (top) bar(gd, x0, y1, w, h, `var(${color})`);
+          else if (h > 0) el("rect", { x: x0, y: y1, width: w, height: h, fill: `var(${color})` }, gd);
+          acc += kcal;
+        });
+      });
+      const pts = []; for (let n = Math.max(ctx.a, FIRST); n <= ctx.b; n++) { const v = intakeAt(n); if (v != null) pts.push([n, v]); }
+      if (pts.length) {
+        let d = "";
+        pts.forEach(([n, v], i) => { const x0 = sx(n - 0.5), x1 = sx(n + 0.5); d += (i ? "L" : "M") + x0.toFixed(1) + " " + sy(v).toFixed(1) + "L" + x1.toFixed(1) + " " + sy(v).toFixed(1); });
+        el("path", { d, fill: "none", stroke: "var(--ink-2)", "stroke-width": 1.5, "stroke-dasharray": "5 4" }, g);
+      }
+      const real = Object.keys(tdeeBy).map(Number).filter((n) => n >= ctx.a && n <= ctx.b).sort((p, q) => p - q).map((n) => [sx(n), sy(tdeeBy[n].kcal)]);
+      if (real.length > 1) el("path", { d: pathOf(real), fill: "none", stroke: "var(--s-blue-strong)", "stroke-width": 2.5, "stroke-linejoin": "round" }, g);
+      dots(g, real, "var(--s-blue-strong)", 3.5);
+    },
+    tip: (n) => {
+      const x = whoopBy[n];
+      const real = tdeeBy[n] ? [[css("--s-blue-strong"), "gasto real según el peso (" + tdeeBy[n].days + " días)", fmt(tdeeBy[n].kcal, 0) + " kcal"]] : [];
+      if (!x || x.kcal == null) return real;
+      const t = woKcal(x), active = Object.values(t).reduce((s, k) => s + k, 0);
+      const rest = x.kcal - active;
+      const f = wf(), k = (v) => fmt(v * f, 0) + " kcal";
+      const rows = [...(x.complete ? [] : [[null, "día en curso", "hasta ahora"]]), [null, corr ? "gasto corregido" : "gasto " + P.device, k(x.kcal)], [css("--s-neutral"), "fuera del entreno", k(rest)]];
+      (x.wo || []).forEach(([type, min, kcal]) => rows.push([css(woColor[type]), type.toLowerCase() + " · " + min + " min", k(kcal)]));
+      if (x.cycleH) rows.push([null, P.device + " marcó en un ciclo de " + fmt(x.cycleH) + " h", fmt(x.kcalRaw, 0) + " kcal"]);
+      else if (corr) rows.push([null, P.device + " marcó", fmt(x.kcal, 0) + " kcal"]);
+      const i = intakeAt(n);
+      if (i != null && x.complete) rows.push([css("--ink-2"), intakeLabel(n), fmt(i, 0) + " kcal"],
+        [null, "déficit", fmt(x.kcal * f - i, 0) + " kcal (" + fmt(100 * (1 - i / (x.kcal * f)), 0) + " %)"]);
+      return [...rows, ...real];
+    },
+  });
+
+  // Real deficit: menu intake against WHOOP × factor (calibrated in analisis/gasto-calorico.md).
+  const deficitAt = (n, f = wf()) => { const x = whoopBy[n], i = intakeAt(n); return x && x.complete && x.kcal && i != null ? 100 * (1 - i / (x.kcal * f)) : null; };
+  const deficit7 = (n) => {
+    let I = 0, E = 0, days = 0;
+    for (let k = n - 6; k <= n; k++) { const x = whoopBy[k], i = intakeAt(k); if (x && x.complete && x.kcal && i != null) { I += i; E += x.kcal * wf(); days++; } }
+    return days >= 5 && deficitAt(n) != null ? { pct: 100 * (1 - I / E), kcal: (E - I) / days, days } : null;
+  };
+  const defColor = (v) => v < P.deficitGoal[0] ? "--s-neutral" : v <= P.deficitGoal[1] ? "--good" : v <= P.deficitHigh ? "--warning" : "--critical";
+  makeChart("c-deficit", {
+    height: 200, bars: true, label: "Déficit diario como % del gasto, con el promedio de 7 días", yFmt: (v) => fmt(v, 0) + " %",
+    y: (a, b) => { const v = [0, P.deficitHigh + 5]; for (let n = a; n <= b; n++) { const d = deficitAt(n); if (d != null) v.push(d); } return [Math.min(...v) - 2, Math.max(...v) + 3]; },
+    draw: (g, sx, sy, ctx) => {
+      el("rect", { x: ctx.m.l, width: ctx.W - ctx.m.l - ctx.m.r, y: sy(P.deficitGoal[1]), height: sy(P.deficitGoal[0]) - sy(P.deficitGoal[1]), fill: "var(--band-goal)" }, g);
+      const w = barW(sx, ctx);
+      for (let n = ctx.a; n <= ctx.b; n++) {
+        const d = deficitAt(n); if (d == null) continue;
+        if (d >= 0) bar(g, sx(n) - w / 2, sy(d), w, sy(0) - sy(d), `var(${defColor(d)})`);
+        else el("rect", { x: sx(n) - w / 2, y: sy(0), width: w, height: sy(d) - sy(0), fill: "var(--s-neutral)" }, g);
+      }
+      hline(g, sx, sy, ctx.a, ctx.b, P.deficitHigh, "var(--critical)", fmt(P.deficitHigh, 0) + " %", ctx);
+      el("line", { x1: ctx.m.l, x2: ctx.W - ctx.m.r, y1: sy(0), y2: sy(0), stroke: "var(--ink-2)", "stroke-width": 1 }, g);
+      const pts = []; for (let n = ctx.a; n <= ctx.b; n++) { const r = deficit7(n); if (r) pts.push([sx(n), sy(r.pct)]); }
+      if (pts.length > 1) el("path", { d: pathOf(pts), fill: "none", stroke: "var(--s-blue-strong)", "stroke-width": 2.5, "stroke-linejoin": "round" }, g);
+      dots(g, pts, "var(--s-blue-strong)", 3);
+    },
+    tip: (n) => {
+      const x = whoopBy[n], i = intakeAt(n), rows = [];
+      if (x && !x.complete) rows.push([null, "día en curso", "incompleto"]);
+      const d = deficitAt(n);
+      if (d != null) {
+        const e = x.kcal * wf();
+        rows.push([css(defColor(d)), "déficit", fmt(d, 0) + " % · " + fmt(e - i, 0) + " kcal"],
+          [null, corr ? "gasto corregido" : "gasto " + P.device, fmt(e, 0) + " kcal"], [css("--ink-2"), intakeLabel(n), fmt(i, 0) + " kcal"]);
+      }
+      const r = deficit7(n);
+      if (r) rows.push([css("--s-blue-strong"), "últimos 7 días (" + r.days + " días)", fmt(r.pct, 0) + " % · " + fmt(r.kcal, 0) + " kcal/día"]);
+      return rows;
+    },
+  });
+
+  // Sleep
+  makeChart("c-sleep", {
+    height: 210, bars: true, label: "Horas de sueño por noche", yFmt: (v) => v + " h",
+    y: (a, b) => [0, Math.max(9, ...inDom(whoop, a, b).map((x) => x.sleep || 0)) + 0.3],
+    draw: (g, sx, sy, ctx) => {
+      hline(g, sx, sy, ctx.a, ctx.b, P.sleepMin, "var(--warning)", "", ctx);
+      const w = barW(sx, ctx);
+      inDom(whoop, ctx.a, ctx.b).filter((x) => x.sleep != null).forEach((x) => {
+        const n = toN(x.d); bar(g, sx(n) - w / 2, sy(x.sleep), w, sy(0) - sy(x.sleep), "var(--s-blue)");
+      });
+    },
+    tip: (n) => {
+      const x = whoopBy[n]; if (!x || x.sleep == null) return [];
+      const h = Math.floor(x.sleep), mnt = Math.round((x.sleep - h) * 60);
+      return [[css("--s-blue"), "sueño", h + " h " + String(mnt).padStart(2, "0") + " min"]];
+    },
+  });
+
+  // Steps
+  makeChart("c-steps", {
+    height: 190, bars: true, label: "Pasos diarios contra la meta de 8.000", yFmt: (v) => v >= 1000 ? fmt(v / 1000, 0) + " k" : fmt(v, 0),
+    y: (a, b) => [0, Math.max(P.stepsMin * 1.5, ...inDom(whoop, a, b).map((x) => x.steps || 0)) * 1.05],
+    draw: (g, sx, sy, ctx) => {
+      const w = barW(sx, ctx);
+      inDom(whoop, ctx.a, ctx.b).filter((x) => x.steps != null).forEach((x) => {
+        const n = toN(x.d); bar(x.complete ? g : el("g", { opacity: 0.45 }, g), sx(n) - w / 2, sy(x.steps), w, sy(0) - sy(x.steps), x.steps >= P.stepsMin ? "var(--s-aqua)" : "var(--s-neutral)");
+      });
+      hline(g, sx, sy, ctx.a, ctx.b, P.stepsMin, "var(--ink-2)", fmt(P.stepsMin, 0), ctx);
+    },
+    tip: (n) => {
+      const x = whoopBy[n]; if (!x || x.steps == null) return [];
+      const rows = [...(x.complete ? [] : [[null, "día en curso", "hasta ahora"]]), [css(x.steps >= P.stepsMin ? "--s-aqua" : "--s-neutral"), "pasos", fmt(x.steps, 0)]];
+      if (x.workouts) rows.push([null, P.workouts.reduce((s, w) => w.etiqueta ? s.replace(w.tipo, w.etiqueta) : s, x.workouts.replace(/ \d+kcal.*$/, "")), ""]);
+      return rows;
+    },
+  });
+
+  // ---------- tables ----------
+  function cell(tr, text, tag = "td", cls) { const c = document.createElement(tag); c.textContent = text; if (cls) c.className = cls; tr.append(c); return c; }
+  // Segment figures: one body per metric (fat, muscle). Each label carries the kg with the change since the base day and the
+  // % of the scale's standard; segments are shaded by that % (one hue, light → dark).
+  const SEG_SHAPES = {
+    left_arm: (s) => `<line x1="42" y1="62" x2="26" y2="158" stroke-width="16" stroke-linecap="round" ${s}/>`,
+    right_arm: (s) => `<line x1="118" y1="62" x2="134" y2="158" stroke-width="16" stroke-linecap="round" ${s}/>`,
+    trunk: (s) => `<rect x="52" y="48" width="56" height="114" rx="14" ${s}/>`,
+    left_leg: (s) => `<line x1="68" y1="176" x2="64" y2="300" stroke-width="22" stroke-linecap="round" ${s}/>`,
+    right_leg: (s) => `<line x1="92" y1="176" x2="96" y2="300" stroke-width="22" stroke-linecap="round" ${s}/>`,
+  };
+  const SEG_POS = { left_arm: "seg-la", right_arm: "seg-ra", trunk: "seg-tr", left_leg: "seg-ll", right_leg: "seg-rl" };
+  const SEG_SHORT = { left_arm: "Brazo izq.", right_arm: "Brazo der.", trunk: "Tronco", left_leg: "Pierna izq.", right_leg: "Pierna der." };
+  // i: index of the kg value in seg[key]; pct: index of its % of standard; shade: % mapped to the lightest and darkest tone.
+  const SEG_METRICS = {
+    fat: { i: 0, pct: 2, name: "Grasa", color: "--s-orange", shade: [80, 340], better: -1 },
+    muscle: { i: 1, pct: 3, name: "Músculo", color: "--s-aqua", shade: [80, 120], better: 1 },
+  };
+  // Standard range of the scale (% of the standard), as in its report: muscle 80–115 % in the arms and 90–110 % in the
+  // trunk and legs; fat 80–160 % everywhere. High muscle is good, high fat is bad.
+  const segRange = (kind, key) => kind === "fat" ? [80, 160] : key.endsWith("arm") ? [80, 115] : [90, 110];
+  const SEG_EVAL = {
+    muscle: { Bajo: "critical", Normal: "good", Alto: "good" },
+    fat: { Bajo: "neutral", Normal: "good", Alto: "critical" },
+  };
+  function segEval(kind, key, pct) {
+    if (pct == null) return null;
+    const [lo, hi] = segRange(kind, key);
+    const word = pct < lo ? "Bajo" : pct > hi ? "Alto" : "Normal";
+    return { word, cls: SEG_EVAL[kind][word] };
+  }
+  // Fat: kg to lose for the segment to reach the top of the normal range (160 % of the standard).
+  // Muscle in the normal range: kg to gain to go over its top (Alto).
+  function segGap(kind, key, kg, pct) {
+    if (kg == null || pct == null) return null;
+    const hi = segRange(kind, key)[1], target = kg * hi / pct;
+    if (kind === "fat") return pct > hi ? { label: "Normal: ≤", target, diff: target - kg } : null;
+    return segEval(kind, key, pct).word === "Normal" ? { label: "Alto: >", target, diff: target - kg } : null;
+  }
+  function buildBody(kind, last, base) {
+    const M = SEG_METRICS[kind];
+    const shapes = Object.keys(SEG_SHAPES).map((key) => {
+      const v = last.seg[key] || [], pct = v[M.pct];
+      const t = pct == null ? 0.5 : Math.min(1, Math.max(0, (pct - M.shade[0]) / (M.shade[1] - M.shade[0])));
+      const tip = SEG_SHORT[key] + ": " + M.name.toLowerCase() + " " + fmt(v[M.i]) + " kg" + (pct != null ? " (" + fmt(pct, 0) + " % del estándar)" : "");
+      const paint = key === "trunk" ? `fill="var(${M.color})"` : `stroke="var(${M.color})"`;
+      return `<g><title>${tip}</title>${SEG_SHAPES[key](`${paint} opacity="${(0.3 + 0.7 * t).toFixed(2)}"`)}</g>`;
+    }).join("");
+    const svg = `<svg viewBox="0 0 160 316" role="img" aria-label="${M.name} por segmento"><circle cx="80" cy="22" r="15" fill="var(--s-neutral)"/><rect x="73" y="35" width="14" height="10" rx="3" fill="var(--s-neutral)"/>${shapes}</svg>`;
+    const labels = Object.keys(SEG_SHAPES).map((key) => {
+      const v = last.seg[key] || [], b = base && base.seg[key] ? base.seg[key] : [];
+      const d = v[M.i] != null && b[M.i] != null ? Math.round((v[M.i] - b[M.i]) * 10) / 10 : null;
+      const dCls = d == null || d === 0 ? "" : d * M.better > 0 ? " delta-down" : " delta-up";
+      const right = key.startsWith("right") ? " right" : "";
+      const ev = segEval(kind, key, v[M.pct]), gap = segGap(kind, key, v[M.i], v[M.pct]);
+      return `<div class="seg-lbl ${SEG_POS[key]}${right}"><span class="seg-name">${SEG_SHORT[key]}</span>` +
+        `<span class="seg-row"><i class="key-dot" style="background:var(${M.color})"></i><b>${fmt(v[M.i])} kg</b>` +
+        (d != null ? `<span class="seg-delta${dCls}">${d === 0 ? "±0" : sign(d)}</span>` : "") + `</span>` +
+        (v[M.pct] != null ? `<span class="seg-delta">${fmt(v[M.pct], 0)} % del estándar</span>` : "") +
+        (ev ? `<span class="chip ${ev.cls}">${ev.word}</span>` : "") +
+        (gap ? `<span class="seg-delta">${gap.label}${fmt(gap.target, 2)} kg (${sign(gap.diff, 2)} kg)</span>` : "") + `</div>`;
+    }).join("");
+    document.getElementById("fig-seg-" + kind).innerHTML = `<div class="body-grid">${svg}${labels}</div>`;
+  }
+  function buildSegTable(kind, last, base) {
+    const M = SEG_METRICS[kind], t = document.getElementById("seg-table-" + kind);
+    const th = document.createElement("thead"), h = document.createElement("tr");
+    ["Segmento", base ? dShort(toN(base.d)) : "Base", "Último", "Cambio", "% est.", "Evaluación", kind === "fat" ? "Falta para Normal" : "Falta para Alto"].forEach((x) => cell(h, x, "th")); th.append(h);
+    const tb = document.createElement("tbody");
+    D.segments.names.forEach(([name, key]) => {
+      const tr = document.createElement("tr"); cell(tr, name);
+      const v0 = base && base.seg[key] ? base.seg[key][M.i] : null, v1 = last.seg[key] ? last.seg[key][M.i] : null;
+      cell(tr, fmt(v0)); cell(tr, fmt(v1));
+      if (v0 != null && v1 != null) {
+        const d = Math.round((v1 - v0) * 10) / 10;
+        cell(tr, d === 0 ? "0" : sign(d), "td", d * M.better > 0 ? "delta-down" : d * M.better < 0 ? "delta-up" : "");
+      } else cell(tr, "–");
+      const pct = last.seg[key] ? last.seg[key][M.pct] : null;
+      cell(tr, pct != null ? fmt(pct, 0) + " %" : "–");
+      const ev = segEval(kind, key, pct);
+      cell(tr, ev ? ev.word : "–", "td", ev && ev.cls === "good" ? "delta-down" : ev && ev.cls === "critical" ? "delta-up" : "");
+      const gap = segGap(kind, key, v1, pct);
+      cell(tr, gap ? sign(gap.diff, 2) + " kg" : "–");
+      tb.append(tr);
+    });
+    t.replaceChildren(th, tb);
+  }
+  function buildSegments() {
+    const S = D.segments, descs = document.querySelectorAll(".seg-desc");
+    if (!S.last) { descs.forEach((e) => { e.textContent = "Todavía no hay pesajes con segmentos."; }); return; }
+    // Base: the weigh-in of the chosen base day; the generator's base as fallback for the first one.
+    const w0 = weighBy[DAY0];
+    const base = w0 && w0.seg ? { d: w0.d, seg: w0.seg } : S.base && toN(S.base.d) === DAY0 ? S.base : null;
+    const txt = base ? "Último pesaje (" + dShort(toN(S.last.d)) + ") y cambio desde el " + dShort(toN(base.d)) + "." : "Último pesaje (" + dShort(toN(S.last.d)) + ").";
+    descs.forEach((e) => { e.textContent = txt; });
+    Object.keys(SEG_METRICS).forEach((kind) => { buildBody(kind, S.last, base); buildSegTable(kind, S.last, base); });
+  }
+  function buildDataTable() {
+    const t = document.getElementById("data-table");
+    const days = [...new Set([...weigh, ...whoop, ...bp].map((x) => toN(x.d)))].sort((p, q) => q - p);
+    const th = document.createElement("thead"), h = document.createElement("tr");
+    ["Fecha", "Peso", "Prom. 7d", "Grasa %", "M. grasa", "MLG", "Presión", "Recovery", "HRV", "FC reposo", "Sueño", "Pasos", "Gasto"].forEach((x) => cell(h, x, "th"));
+    th.append(h);
+    const tb = document.createElement("tbody");
+    days.forEach((n) => {
+      const w = weighBy[n], x = whoopBy[n], p = bpBy[n], tr = document.createElement("tr");
+      cell(tr, fromN(n));
+      cell(tr, w ? (w.src === "estimado" ? "≈" : "") + fmt(w.w, 2) : ""); cell(tr, w && w.avg7 != null ? fmt(w.avg7, 2) : "");
+      cell(tr, w ? fmt(w.fatPct) : ""); cell(tr, w ? fmt(w.fatKg) : ""); cell(tr, w ? fmt(w.ffmKg) : "");
+      cell(tr, p ? fmt(p.sys, 0) + "/" + fmt(p.dia, 0) : "");
+      cell(tr, x && x.rec != null ? fmt(x.rec, 0) + "%" : ""); cell(tr, x && x.hrv != null ? fmt(x.hrv) : "");
+      cell(tr, x && x.rhr != null ? fmt(x.rhr, 0) : ""); cell(tr, x && x.sleep != null ? fmt(x.sleep) + " h" : "");
+      cell(tr, x && x.steps != null && x.complete ? fmt(x.steps, 0) : "");
+      cell(tr, x && x.kcalRaw != null && x.complete ? fmt(x.kcalRaw, 0) : "");
+      tb.append(tr);
+    });
+    t.replaceChildren(th, tb);
+  }
+
+  // ---------- weekly history ----------
+  // One column per Monday (7-day average ending that day), one row per metric with its own scale, values printed
+  // on the points. "Reciente" = the last 6 Mondays. The coming Monday (open) shows the week so far: hollow, dashed.
+  // Rows the scale doesn't measure (no muscle, or weight only) are left out.
+  const HIST_ROWS = [
+    { key: "w", name: "Peso", unit: "kg", color: "--s-blue-strong" },
+    { key: "muscleKg", name: "Masa muscular", unit: "kg", color: "--s-aqua" },
+    { key: "skmKg", name: "Músculo esquelético", unit: "kg", color: "--s-aqua" },
+    { key: "fatKg", name: "Masa grasa", unit: "kg", color: "--s-orange" },
+    { key: "fatPct", name: "% de grasa", unit: "%", color: "--s-orange" },
+  ].filter((row) => D.history.some((w) => w[row.key] != null));
+  let histKey = "recent";
+  try { histKey = localStorage.getItem("panel-hist") === "all" ? "all" : "recent"; } catch (e) { /* storage unavailable */ }
+  function renderHistory() {
+    const root = document.getElementById("c-history");
+    const fromBase = D.history.filter((w) => toN(w.d) >= DAY0); // the «Desde …» toggle sets the first Monday
+    const weeks = histKey === "all" ? fromBase : fromBase.slice(-6);
+    if (!weeks.length) { root.innerHTML = '<p class="empty">Sin pesajes todavía.</p>'; return; }
+    const W = root.clientWidth || 900, LW = Math.min(190, W * 0.3), RH = 74, DH = 34, H = RH * HIST_ROWS.length + DH;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": "Historial semanal de peso, masa muscular, músculo esquelético, masa grasa y % de grasa" });
+    const colW = (W - LW) / weeks.length, cx = (i) => LW + colW * (i + 0.5);
+    HIST_ROWS.forEach((row, r) => {
+      const top = r * RH;
+      el("rect", { x: 0, y: top + 1, width: LW - 10, height: RH - 2, rx: 6, fill: css("--pre") }, svg);
+      el("text", { x: 12, y: top + RH / 2 - 2, class: "h-name" }, svg).textContent = row.name;
+      el("text", { x: 12, y: top + RH / 2 + 15, class: "h-unit" }, svg).textContent = "(" + row.unit + ")";
+      el("line", { x1: LW, x2: W, y1: top + RH, y2: top + RH, stroke: css("--grid") }, svg);
+      el("line", { x1: LW, x2: LW, y1: top + 6, y2: top + RH - 6, stroke: css("--axis") }, svg);
+      const vals = weeks.map((w) => w[row.key]);
+      const ok = vals.filter((v) => v != null);
+      if (!ok.length) return;
+      const [lo, hi] = extent(ok, 0, row.unit === "%" ? 1 : 0.8);
+      // Values sit in the lower part of the row so their labels fit above the points.
+      const sy = (v) => top + RH - 14 - (v - lo) / (hi - lo) * (RH - 46);
+      const pts = weeks.map((w, i) => w[row.key] == null ? null : [cx(i), sy(w[row.key]), w]);
+      const segs = pts.filter(Boolean);
+      const closed = segs.filter(([, , w]) => !w.open);
+      el("path", { d: pathOf(closed.map(([x, y]) => [x, y])), fill: "none", stroke: css(row.color), "stroke-width": 2 }, svg);
+      const open = segs.slice(-2);
+      if (open.length === 2 && open[1][2].open) el("path", { d: pathOf(open.map(([x, y]) => [x, y])), fill: "none", stroke: css(row.color), "stroke-width": 2, "stroke-dasharray": "4 4" }, svg);
+      segs.forEach(([x, y, w], i) => {
+        const partial = w.n < 5 || w.open;
+        const c = el("circle", { cx: x, cy: y, r: 5, fill: partial ? css("--surface") : css(row.color), stroke: css(row.color), "stroke-width": 2 }, svg);
+        el("title", {}, c).textContent = dWeek(toN(w.d)) + dShort(toN(w.d)) + ": " + fmt(w[row.key], 1) + " " + row.unit + " · " + w.n + " pesaje" + (w.n === 1 ? "" : "s") + " en la semana" + (w.open ? " (semana en curso: promedio incompleto)" : "");
+        const prev = i ? segs[i - 1][2][row.key] : null;
+        const t = el("text", { x, y: y - 11, "text-anchor": "middle", class: "h-val" }, svg);
+        t.textContent = fmt(w[row.key], 1);
+        if (prev != null) {
+          const dv = Math.round(10 * (w[row.key] - prev)) / 10;
+          const good = row.key === "skmKg" || row.key === "muscleKg" ? dv > 0 : dv < 0;
+          const ts = el("tspan", { dx: 4, "font-size": 11.5, "font-weight": 500, fill: dv === 0 ? css("--muted") : css(good ? "--good-ink" : "--critical-ink") }, t);
+          ts.textContent = dv === 0 ? "±0" : sign(dv);
+        }
+      });
+    });
+    weeks.forEach((w, i) => {
+      if (i) el("line", { x1: LW + colW * i, x2: LW + colW * i, y1: 0, y2: H - 4, stroke: css("--axis"), "stroke-dasharray": "2 4" }, svg);
+      el("text", { x: cx(i), y: RH * HIST_ROWS.length + 21, "text-anchor": "middle", class: "h-date" }, svg).textContent = dWeek(toN(w.d)) + dShort(toN(w.d)) + (w.open ? " · en curso" : "");
+    });
+    root.replaceChildren(svg);
+  }
+  function setHist(key) {
+    histKey = key === "all" ? "all" : "recent";
+    try { localStorage.setItem("panel-hist", histKey); } catch (e) { /* storage unavailable */ }
+    document.querySelectorAll("[data-hist]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.hist === histKey)));
+    renderHistory();
+  }
+  document.querySelectorAll("[data-hist]").forEach((b) => b.addEventListener("click", () => setHist(b.dataset.hist)));
+  charts.push({ render: renderHistory, updateHover() {} });
+
+  // ---------- range control ----------
+  // Every range starts with week 0 (shaded); 15/30/60/90 run up to that milestone, "plan" up to the goal date.
+  const mileEnd = (days) => { const m = miles.find((x) => x.name === days + " días"); return (m ? m.n : START + days - 1) + 1; };
+  const ranges = {
+    "7": () => [DAY0, mileEnd(7)],
+    "15": () => [DAY0, mileEnd(15)],
+    "30": () => [DAY0, mileEnd(30)],
+    "60": () => [DAY0, mileEnd(60)],
+    "90": () => [DAY0, mileEnd(90)],
+    plan: () => [DAY0, GOAL + 7],
+  };
+  document.querySelectorAll(".range button").forEach((b) => {
+    if (ranges[b.dataset.range] && b.dataset.range !== "plan") b.title = "Desde la base elegida (12 oct o 19 oct) hasta el hito de " + b.textContent + " (" + dWeek(mileEnd(+b.dataset.range) - 1) + dShort(mileEnd(+b.dataset.range) - 1) + ")";
+  });
+  // Default: the first milestone not yet reached.
+  const defaultRange = ["7", "15", "30", "60", "90"].find((k) => mileEnd(+k) - 1 >= TODAY) || "plan";
+  let rangeKey = defaultRange;
+  function setRange(key) {
+    if (!ranges[key]) key = defaultRange;
+    rangeKey = key;
+    domain = ranges[key]();
+    document.querySelectorAll("[data-range]").forEach((b) => b.setAttribute("aria-pressed", b.dataset.range === key));
+    try { localStorage.setItem("panel-range", key); } catch (e) {}
+    hover = null;
+    charts.forEach((c) => c.render());
+  }
+  document.querySelectorAll("[data-range]").forEach((b) => b.addEventListener("click", () => setRange(b.dataset.range)));
+  function setCorr(on) {
+    corr = on;
+    try { localStorage.setItem("corr", on ? "1" : "0"); } catch (e) { /* storage unavailable */ }
+    document.querySelectorAll("[data-corr]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.corr === (on ? "1" : "0"))));
+    document.querySelectorAll(".corr-only").forEach((e) => { e.hidden = !on; });
+    document.querySelectorAll(".raw-only").forEach((e) => { e.hidden = on; });
+    charts.forEach((c) => c.render());
+  }
+  document.querySelectorAll("[data-corr]").forEach((b) => b.addEventListener("click", () => setCorr(b.dataset.corr === "1")));
+  function setBase(key, redraw = true) {
+    baseKey = BASES[key] != null ? key : "start";
+    DAY0 = BASES[baseKey];
+    cb = weighBy[DAY0];
+    weighAverages();
+    compSummary();
+    try { localStorage.setItem("panel-base", baseKey); } catch (e) { /* storage unavailable */ }
+    document.querySelectorAll("[data-base]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.base === baseKey)));
+    document.querySelectorAll(".base-lbl").forEach((e) => { e.textContent = dShort(DAY0); });
+    if (!redraw) return;
+    document.getElementById("readings").replaceChildren();
+    buildReadings();
+    buildSegments();
+    buildDataTable();
+    setRange(rangeKey); // the charts start at the base day
+  }
+  document.querySelectorAll("[data-base]").forEach((b) => b.addEventListener("click", () => setBase(b.dataset.base)));
+
+  document.getElementById("sub").textContent = (TODAY < START ? "Fase 1 · semana 0 (adaptación)" : "Fase 1 · día " + (TODAY - START + 1) + " de 90") + " · meta " + fmt(P.goalLow) + "–" + fmt(P.goalHigh) + " kg hacia el " + dLong(P.goalDate);
+  document.getElementById("plan-ver").textContent = P.version;
+  document.getElementById("gen").textContent = "Actualizado el " + dLong(D.generated.slice(0, 10)) + " a las " + D.generated.slice(11) + ".";
+  if (hasTdee) document.getElementById("tdee-key").hidden = false;
+  // Sections without data (another device, no blood pressure monitor…) are hidden instead of left empty.
+  const has = (k) => whoop.some((x) => x[k] != null);
+  const show = (sel, on) => document.querySelectorAll(sel).forEach((e) => { if (!on) e.hidden = true; });
+  const section = (id, on) => { if (!on) document.getElementById(id).closest("section").hidden = true; };
+  show(".cycle-only", whoop.some((x) => x.cycleH));
+  show(".rec-only", has("rec"));
+  show(".norec-only", !has("rec"));
+  show(".hrv-only", has("hrv"));
+  section("c-rec", has("rec") || has("hrv"));
+  section("c-kcal", has("kcal"));
+  section("c-deficit", has("kcal"));
+  show("#corr-group", has("kcal"));
+  section("c-steps", has("steps"));
+  section("c-sleep", has("sleep"));
+  section("c-bp", D.bp.length > 0 || P.bpSource);
+  if (!D.segments.last) document.querySelectorAll(".seg-panel").forEach((e) => { e.hidden = true; });
+  document.querySelectorAll(".grid2").forEach((g) => { if ([...g.children].every((c) => c.hidden)) g.hidden = true; });
+  setBase(baseKey, false);
+  setHist(histKey);
+  buildReadings();
+  buildSegments();
+  buildDataTable();
+  let saved = defaultRange;
+  try { saved = localStorage.getItem("panel-range") || defaultRange; } catch (e) {}
+  setRange(saved);
+  setCorr(corr);
+  let rt;
+  new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => charts.forEach((c) => c.render()), 80); }).observe(document.querySelector(".wrap"));
+})();
+</script>

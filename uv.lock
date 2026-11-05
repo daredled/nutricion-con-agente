@@ -1,0 +1,35 @@
+version = 1
+revision = 3
+requires-python = ">=3.14"
+
+[[package]]
+name = "alimentacion"
+version = "0.1.0"
+source = { virtual = "." }
+dependencies = [
+    { name = "fitdays-sync" },
+    { name = "whoop-sync" },
+    { name = "withings-sync" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fitdays-sync", git = "https://github.com/daredled/fitdays-sync" },
+    { name = "whoop-sync", git = "https://github.com/daredled/whoop-sync" },
+    { name = "withings-sync", git = "https://github.com/daredled/withings-sync" },
+]
+
+[[package]]
+name = "fitdays-sync"
+version = "0.1.0"
+source = { git = "https://github.com/daredled/fitdays-sync#38e9a64e2580d8817043e1c4f128ce9cf7793191" }
+
+[[package]]
+name = "whoop-sync"
+version = "0.1.0"
+source = { git = "https://github.com/daredled/whoop-sync#09290d74c368692ccb11f537d8055362f1cb2638" }
+
+[[package]]
+name = "withings-sync"
+version = "0.1.0"
+source = { git = "https://github.com/daredled/withings-sync#12b0081c61fab30d39cd6f46b17224ee0339994e" }

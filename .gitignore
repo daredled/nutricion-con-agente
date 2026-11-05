@@ -1,0 +1,10 @@
+# Todo lo personal
+persona/
+.env
+# Tokens en ~/.config/{whoop,withings,fitdays}-sync/
+__pycache__/
+.venv/
+
+# Salidas generadas del ejemplo
+ejemplo/registros/whoop_ciclos.csv
+ejemplo/imprimir/*.pdf

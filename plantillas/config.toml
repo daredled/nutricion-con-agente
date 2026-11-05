@@ -1,0 +1,60 @@
+# Copiar a persona/config.toml. Lo usa visualizacion/generar.py.
+nombre = "NOMBRE"
+plan = "plan/AAAA-MM-DD_plan-fase1.md"  # relativo a persona/
+
+[fechas]
+datos_desde = "AAAA-MM-DD"     # primer lunes con datos: inicio de la semana 0 (adaptación)
+dia_0 = "AAAA-MM-DD"           # el domingo antes del día 1
+dia_1 = "AAAA-MM-DD"           # lunes en que parte el conteo de días del plan
+base_segmentos = "AAAA-MM-DD"  # respaldo de las figuras por segmento: el primer pesaje con segmentos (primer día de la semana 0)
+
+# De dónde sale cada dato (formatos.md). Sin esta sección: Fitdays, WHOOP y Withings.
+[fuentes]
+pesa = "fitdays"         # fitdays | csv (registros/pesa.csv) | manual (peso en seguimiento.md)
+actividad = "whoop"      # whoop | csv (registros/actividad.csv) | ninguna
+presion = "withings"     # withings | csv | ninguna
+dispositivo = "WHOOP"    # nombre que muestra el panel (ej.: "Garmin")
+
+[fitdays]
+suid = ""                      # opcional: perfil de esta persona, si la cuenta tiene varios (ver fitdays/raw/sync.json)
+
+[ingesta]
+menu = [["AAAA-MM-DD", 0]]     # ingesta del menú por fecha de inicio; agregar un par cada vez que cambie
+# Opcional, solo si el plan alguna vez recortó los días sin entreno (metodologia.md recomienda no hacerlo):
+# sin_entreno_kcal = 250                          # recorte de esos días
+# sin_entreno_solo_primero_desde = "AAAA-MM-DD"   # desde aquí, solo el primero de una racha
+# sin_entreno_hasta = "AAAA-MM-DD"                # último día con recorte
+# Opcional: desde esta fecha el doble turno (reglas.doubleExtra) cuenta solo sábado y domingo. Sin ella, cualquier día.
+# doble_turno_finde_desde = "AAAA-MM-DD"
+
+[panel]
+pasos_nota = "El plan pide al menos N pasos al día."
+
+# Tipos de entrenamiento del CSV de actividad (`tipo`) -> nombre en el panel (el resto cae en «Otro»). `sesion = false`: no cuenta como
+# sesión para el doble turno ni para el día sin entreno. `etiqueta` (opcional): cómo se escribe en el tooltip de pasos.
+[[entrenamientos]]
+tipo = "walking"
+nombre = "Caminata"
+color = "--s-blue"
+sesion = false
+
+# Umbrales del plan. Si cambian, actualizarlos aquí junto con el plan.
+[reglas]
+goalLow = 0.0            # zona meta de peso (kg)
+goalHigh = 0.0
+tolerance = 1.0          # margen sobre la referencia (kg)
+hrvMin = 0.0             # promedio propio menos 1 desviación estándar
+sleepMin = 6             # horas: varias noches bajo esto activan la regla de sueño
+stepsMin = 0
+visceralGoal = 0         # meta de grasa visceral de la pesa; si ya está bajo, la de un grado sano (≤9 en Fitdays)
+fatGoal = 0
+ffmMin = 0.0             # masa libre de grasa mínima (kg)
+# Presión: sin tensiómetro, dejar los valores generales (el panel muestra «Sin tomas»).
+bpUsual = [110, 130, 70, 85]  # sistólica mín. y máx., diastólica mín. y máx. habituales
+bpHigh = [140, 90]
+bpLow = [90, 60]              # con antihipertensivos, el umbral que indique su médico
+doubleExtra = 0          # kcal extra del doble turno (2 sesiones en el día); 0 = sin excepción
+whoopFactor = 1.0        # gasto real ≈ day_kcal × factor, para cualquier dispositivo; se recalibra con la tendencia del peso
+whoopFactorRange = [1.0, 1.0]  # rango del factor, como referencia (el panel no lo usa)
+deficitGoal = [20, 25]
+deficitHigh = 35
