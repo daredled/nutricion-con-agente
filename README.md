@@ -1,4 +1,4 @@
-# Alimentación
+# Nutrición con agente
 
 Plan de alimentación con seguimiento diario, operado por un agente de código (Claude Code u otro que lea `AGENTS.md`). El agente hace de nutricionista deportivo: arma un plan para bajar grasa sin perder músculo, lee cada día la pesa y el reloj, lleva los registros, genera un panel local y ajusta el plan solo con reglas explícitas.
 

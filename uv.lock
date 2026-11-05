@@ -3,7 +3,12 @@ revision = 3
 requires-python = ">=3.14"
 
 [[package]]
-name = "alimentacion"
+name = "fitdays-sync"
+version = "0.1.0"
+source = { git = "https://github.com/daredled/fitdays-sync#38e9a64e2580d8817043e1c4f128ce9cf7793191" }
+
+[[package]]
+name = "nutricion-con-agente"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
@@ -18,11 +23,6 @@ requires-dist = [
     { name = "whoop-sync", git = "https://github.com/daredled/whoop-sync" },
     { name = "withings-sync", git = "https://github.com/daredled/withings-sync" },
 ]
-
-[[package]]
-name = "fitdays-sync"
-version = "0.1.0"
-source = { git = "https://github.com/daredled/fitdays-sync#38e9a64e2580d8817043e1c4f128ce9cf7793191" }
 
 [[package]]
 name = "whoop-sync"

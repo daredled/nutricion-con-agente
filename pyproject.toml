@@ -1,5 +1,5 @@
 [project]
-name = "alimentacion"
+name = "nutricion-con-agente"
 version = "0.1.0"
 description = "Plan de alimentación y seguimiento diario (WHOOP, Withings y Fitdays)"
 requires-python = ">=3.14"
