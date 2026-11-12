@@ -30,6 +30,8 @@ DATA_START = CONFIG["fechas"]["datos_desde"]
 DAY0 = CONFIG["fechas"]["dia_0"]
 SEG_BASE = CONFIG["fechas"]["base_segmentos"]
 PLAN_START = CONFIG["fechas"]["dia_1"]
+# `hoy` fija la fecha del panel (para un ejemplo que no avanza); sin ella, la fecha real.
+TODAY = date.fromisoformat(CONFIG["fechas"].get("hoy") or date.today().isoformat())
 FITDAYS_SUID = CONFIG.get("fitdays", {}).get("suid", "")
 INTAKE = CONFIG["ingesta"]["menu"]
 # Excepciones opcionales del menú. Sin ellas: sin variante sin entreno, y doble turno cualquier día.
@@ -138,23 +140,29 @@ def weigh_ins() -> list[dict]:
     return [by_day[d] for d in sorted(by_day)]
 
 
+MAX_GAP = 2  # días seguidos sin pesaje que se estiman (ej.: un fin de semana)
+
+
 def fill_gaps(by_day: dict[str, dict]) -> None:
-    """Día suelto sin pesaje entre dos pesajes: promedio de ambos, marcado como «estimado».
+    """Hasta MAX_GAP días seguidos sin pesaje entre dos pesajes: interpolación lineal, marcada como «estimado».
 
     Solo sirve para que los gráficos se vean completos: no entra en los promedios de 7 días (ver build).
     """
-    for d in sorted(by_day):
-        nxt = (date.fromisoformat(d) + timedelta(days=2)).isoformat()
-        mid = (date.fromisoformat(d) + timedelta(days=1)).isoformat()
-        if d < DATA_START or mid in by_day or nxt not in by_day:
+    keys = ("w", "fatPct", "fatKg", "ffmKg", "visceral", "muscleKg", "skmKg")
+    days = sorted(d for d in by_day if d >= DATA_START)
+    for d, nxt in zip(days, days[1:]):
+        gap = (date.fromisoformat(nxt) - date.fromisoformat(d)).days - 1
+        if not 1 <= gap <= MAX_GAP:
             continue
         a, b = by_day[d], by_day[nxt]
-        avg = lambda x, y: round((x + y) / 2, 2) if x is not None and y is not None else None
-        seg = None
-        if a["seg"] and b["seg"]:
-            seg = {k: [avg(x, y) for x, y in zip(a["seg"][k], b["seg"][k])] for k in a["seg"]}
-        by_day[mid] = {"d": mid, "t": "", "src": "estimado", "seg": seg,
-                       **{k: avg(a[k], b[k]) for k in ("w", "fatPct", "fatKg", "ffmKg", "visceral", "muscleKg", "skmKg")}}
+        for i in range(1, gap + 1):
+            f = i / (gap + 1)
+            lerp = lambda x, y: round(x + (y - x) * f, 2) if x is not None and y is not None else None
+            seg = None
+            if a["seg"] and b["seg"]:
+                seg = {k: [lerp(x, y) for x, y in zip(a["seg"][k], b["seg"][k])] for k in a["seg"]}
+            mid = (date.fromisoformat(d) + timedelta(days=i)).isoformat()
+            by_day[mid] = {"d": mid, "t": "", "src": "estimado", "seg": seg, **{k: lerp(a[k], b[k]) for k in keys}}
 
 
 def segment_pcts() -> dict[str, dict[str, list]]:
@@ -211,10 +219,10 @@ def weekly_history(weighs: list[dict]) -> list[dict]:
     real = [w for w in weighs if w["src"] != "estimado"]
     out = []
     d = date.fromisoformat(DATA_START)
-    while d - timedelta(days=6) <= date.today():
+    while d - timedelta(days=6) <= TODAY:
         at = [d.isoformat()]
         row = {"d": d.isoformat(), "n": sum(d - timedelta(days=6) <= date.fromisoformat(w["d"]) <= d for w in real),
-               "open": d > date.today()}
+               "open": d > TODAY}
         for key in ("w", "muscleKg", "skmKg", "fatKg", "fatPct"):
             row[key] = rolling({w["d"]: w[key] for w in real if w[key] is not None}, min_n=1, at=at).get(at[0])
         if row["n"]:
@@ -261,9 +269,18 @@ def segments_md(path: Path) -> dict | None:
     return seg or None
 
 
-def intake_days(whoop: list[dict]) -> dict[str, dict]:
-    """Ingesta estimada por día: menú, menos la variante sin entreno, más el doble turno; registros/ingesta.csv manda.
+OFF_PLAN_MIN = 300  # kcal sobre el menú desde las que un día estimado cuenta como «salida» (para imputar los «fuera»)
 
+
+def intake_days(whoop: list[dict]) -> dict[str, dict]:
+    """Ingesta de cada día completo de WHOOP, con su tipo (`kind`), para no mezclar datos y estimaciones.
+
+    registros/ingesta.csv (`date`, `kcal`, `tipo`, `nota`) dice qué se sabe de cada día:
+    - `menu`: la persona confirmó el menú. Las kcal salen del plan: el menú, la variante sin entreno o el doble turno.
+    - `estimada` (o sin `tipo`): kcal estimadas por el agente (fotos o descripción).
+    - `fuera`: comió fuera del menú sin detalle. Se imputa el promedio de las salidas estimadas.
+    Un día sin fila se imputa con el promedio de los días con dato del mismo tipo (lunes a viernes o fin de semana).
+    Sin días con dato para promediar, queda el menú como supuesto.
     Un día sin entreno es un día completo de WHOOP sin sesiones (las caminatas no cuentan); el doble turno, 2 o más
     (desde DOUBLE_WEEKEND_FROM, solo sábado y domingo).
     """
@@ -274,7 +291,7 @@ def intake_days(whoop: list[dict]) -> dict[str, dict]:
                 v = k
         return v
 
-    out, prev_rest = {}, False
+    plan, prev_rest = {}, False
     for w in sorted(whoop, key=lambda w: w["d"]):
         sessions = [t for t, _, _ in w["wo"] if t not in NO_SESSION]
         rest = w["complete"] and not sessions
@@ -282,15 +299,41 @@ def intake_days(whoop: list[dict]) -> dict[str, dict]:
         if base is not None and w["complete"]:
             weekend = date.fromisoformat(w["d"]).weekday() >= 5
             if PLAN_RULES.get("doubleExtra") and len(sessions) >= 2 and (weekend or w["d"] < DOUBLE_WEEKEND_FROM):
-                out[w["d"]] = {"kcal": base + PLAN_RULES.get("doubleExtra", 0), "src": "doble turno"}
+                plan[w["d"]] = (base + PLAN_RULES.get("doubleExtra", 0), "doble turno")
             elif rest and PLAN_START <= w["d"] <= REST_CUT_UNTIL and not (w["d"] >= REST_FIRST_ONLY_FROM and prev_rest):
-                out[w["d"]] = {"kcal": base - REST_CUT, "src": "sin entreno"}
+                plan[w["d"]] = (base - REST_CUT, "sin entreno")
             else:
-                out[w["d"]] = {"kcal": base, "src": "menú"}
+                plan[w["d"]] = (base, "menú")
         prev_rest = rest
+
+    known, off = {}, []
     for r in read_csv(REG / "ingesta.csv"):
-        if num(r["kcal"]) is not None:
-            out[r["date"]] = {"kcal": num(r["kcal"]), "src": r.get("nota") or "estimada"}
+        d, tipo = r["date"], (r.get("tipo") or "estimada").strip()
+        if tipo == "menu" and d in plan:
+            known[d] = {"kcal": plan[d][0], "src": "menú confirmado" + (f" ({plan[d][1]})" if plan[d][1] != "menú" else ""), "kind": "confirmada"}
+        elif tipo == "fuera":
+            known[d] = None  # se imputa abajo
+        elif num(r["kcal"]) is not None:
+            known[d] = {"kcal": num(r["kcal"]), "src": r.get("nota") or "estimada", "kind": "estimada"}
+            if d in plan and known[d]["kcal"] >= plan[d][0] + OFF_PLAN_MIN:
+                off.append(known[d]["kcal"])
+
+    is_weekend = lambda d: date.fromisoformat(d).weekday() >= 5
+    with_data = {d: v["kcal"] for d, v in known.items() if v and d >= DATA_START}
+    group = {g: [k for d, k in with_data.items() if is_weekend(d) == g] for g in (False, True)}
+    out = {}
+    for d, (kcal, src) in plan.items():
+        if d in known and known[d]:
+            out[d] = known[d]
+        elif d in known and off:
+            out[d] = {"kcal": round(sum(off) / len(off)), "kind": "imputada",
+                      "src": f"fuera del menú sin detalle: promedio de {len(off)} salidas estimadas"}
+        elif d not in known and group[is_weekend(d)]:
+            g = group[is_weekend(d)]
+            out[d] = {"kcal": round(sum(g) / len(g)), "kind": "imputada",
+                      "src": f"sin dato: promedio de {len(g)} días " + ("de fin de semana" if is_weekend(d) else "de lunes a viernes") + " con dato"}
+        else:
+            out[d] = {"kcal": kcal, "src": "sin dato: se supone el " + src, "kind": "supuesta"}
     return out
 
 
@@ -341,7 +384,7 @@ def build() -> dict:
     last = next((w for w in reversed(weighs) if has_seg(w["seg"])), None)
     return {
         "generated": datetime.now().strftime("%Y-%m-%d %H:%M"),
-        "today": date.today().isoformat(),
+        "today": TODAY.isoformat(),
         "planStart": PLAN_START, "day0": DAY0, "dataStart": DATA_START,
         "plan": {**PLAN_RULES, "version": plan_version(), "ref": ref, "goalDate": goal_date(ref), "intake": INTAKE, "intakeDays": intake_days(whoop), "milestones": plan_milestones(), "workouts": WORKOUTS, "noSession": NO_SESSION, "device": DEVICE,
                  "bpSource": SOURCES["presion"] != "ninguna"},
@@ -374,16 +417,19 @@ def template_tokens() -> dict[str, str]:
     short = lambda d: f"{d.day} {MONTHS[d.month - 1]}"
     dec = lambda v: f"{v:g}".replace(".", ",")
     legend = "\n".join(f'      <span><i class="key-rect" style="background:var({w["color"]})"></i>{w["nombre"]}</span>' for w in WORKOUTS)
+    # Enlace al menú del refrigerador, si la persona lo tiene (se abre en otra pestaña para imprimirlo).
+    menu = PERSONA / "imprimir" / "menu-refrigerador.html"
+    link = ('      <p class="sub links"><a href="imprimir/menu-refrigerador.html" target="_blank" rel="noopener">Menú para imprimir ↗</a></p>\n'
+            if menu.exists() else "")
     start = day(PLAN_START)
     expense_from = start + timedelta(days=7)
     return {
         "__NOMBRE__": CONFIG["nombre"], "__BASE_1__": short(day(DATA_START)), "__BASE_2__": short(start),
         "__DIA1_CORTO__": f"{start.day}-{start.month}", "__GASTO_DESDE__": f"{expense_from.day}-{expense_from.month}",
         "__META__": f"{dec(PLAN_RULES["goalLow"])}–{dec(PLAN_RULES["goalHigh"])}",
-        "__SUBESTIMA__": str(round((1 - 1 / PLAN_RULES["whoopFactor"]) * 100)),
         "__PASOS__": f"{PLAN_RULES["stepsMin"]:,}".replace(",", "."), "__PASOS_NOTA__": CONFIG.get("panel", {}).get("pasos_nota", ""),
         "__HRV_MIN__": dec(PLAN_RULES["hrvMin"]), "__PRESION_HABITUAL__": "{}–{} / {}–{}".format(*PLAN_RULES["bpUsual"]),
-        "__LEYENDA_ENTRENOS__": legend, "__DISPOSITIVO__": DEVICE, "__FUENTES__": sources_text(),
+        "__LEYENDA_ENTRENOS__": legend, "__LINK_MENU__": link, "__DISPOSITIVO__": DEVICE, "__FUENTES__": sources_text(),
         "__META_GRASA__": dec(PLAN_RULES["fatGoal"]),
         "__PRESION_ALTA__": "{}/{}".format(*PLAN_RULES["bpHigh"]), "__PRESION_BAJA__": "{}/{}".format(*PLAN_RULES["bpLow"]),
     }

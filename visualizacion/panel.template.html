@@ -71,6 +71,7 @@ body {
 header.top { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 12px 24px; }
 h1 { font-family: var(--font-display); font-weight: 700; font-size: 30px; line-height: 1.05; margin: 0; letter-spacing: -0.01em; text-wrap: balance; }
 .sub { color: var(--ink-2); margin: 4px 0 0; font-size: 13px; }
+.links a { color: var(--accent); font-weight: 500; text-underline-offset: 2px; }
 
 .range { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); padding: 3px; gap: 2px; }
 .range button {
@@ -187,19 +188,10 @@ footer { color: var(--muted); font-size: 12px; display: grid; gap: 2px; }
     <div>
       <h1>Seguimiento de __NOMBRE__</h1>
       <p class="sub" id="sub"></p>
-    </div>
+__LINK_MENU__    </div>
     <div class="top-ctl">
-    <div class="range" role="group" aria-label="Rango de fechas">
-      <button type="button" id="r7" data-range="7">7 días</button>
-      <button type="button" id="r15" data-range="15">15 días</button>
-      <button type="button" id="r30" data-range="30">30 días</button>
-      <button type="button" id="r60" data-range="60">60 días</button>
-      <button type="button" id="r90" data-range="90">90 días</button>
+    <div class="range" role="group" aria-label="Rango de fechas" id="range-group">
       <button type="button" id="rplan" data-range="plan">Plan completo</button>
-    </div>
-    <div class="range" role="group" aria-label="Gasto calórico" id="corr-group">
-      <button type="button" data-corr="0">__DISPOSITIVO__ tal cual</button>
-      <button type="button" data-corr="1">Corregido × <span class="wf"></span></button>
     </div>
     <div class="range" role="group" aria-label="Base de las comparaciones">
       <button type="button" data-base="first">Desde el lun __BASE_1__</button>
@@ -218,7 +210,7 @@ footer { color: var(--muted); font-size: 12px; display: grid; gap: 2px; }
         <button type="button" data-hist="all">Total</button>
       </div>
     </div>
-    <p class="desc">Promedio de los 7 días que terminan cada lunes, el día de la revisión semanal. Cada fila tiene su propia escala. Punto hueco: semana con menos de 5 pesajes. El último lunes, unido con línea punteada, es la semana en curso, con los pesajes que van. Parte en el lunes elegido arriba (__BASE_1__ o __BASE_2__); «Reciente» muestra las últimas 6 semanas.</p>
+    <p class="desc">Promedio de la semana que termina cada lunes; el deporte (sin caminatas, gasto corregido) y el déficit son el total de la semana. Punto hueco: semana con pocos datos. Línea punteada: semana en curso.</p>
     <div class="chart" id="c-history"></div>
   </section>
 
@@ -232,32 +224,31 @@ footer { color: var(--muted); font-size: 12px; display: grid; gap: 2px; }
       <span><i class="key-dash" style="border-color:var(--ink-2)"></i>Referencia del plan</span>
       <span><i class="key-rect" style="background:var(--band-tol)"></i>Margen +1 kg</span>
       <span><i class="key-rect" style="background:var(--band-goal)"></i>Zona meta __META__ kg</span>
-      <span><i class="key-dia" style="background:var(--accent)"></i>Hitos 7 · 15 · 30 · 60 · 90 días (la barra marca hasta dónde va bien)</span>
+      <span><i class="key-dia" style="background:var(--accent)"></i><span id="miles-key">Hitos</span> (la barra marca hasta dónde va bien)</span>
     </div>
     <div class="chart" id="c-weight"></div>
   </section>
 
   <section class="panel">
     <h2>Energía <span class="est">Estimado</span></h2>
-    <p class="desc"><span class="corr-only">Gasto <b>corregido</b> (__DISPOSITIVO__ × <span class="wf"></span>; __DISPOSITIVO__ subestima ~__SUBESTIMA__ %)</span><span class="raw-only">Gasto <b>según __DISPOSITIVO__</b></span><span class="cycle-only">, llevado a 24 h (el «día» de WHOOP va de dormirse a dormirse: dura de 19 a 29 h)</span>, por componente, contra la ingesta estimada (línea punteada: menú, variante sin entreno, doble turno y comidas fuera del plan). La línea azul (desde el __GASTO_DESDE__) es el gasto real según la tendencia del peso. El día en curso va en color tenue (incompleto).</p>
+    <p class="desc">Gasto del día (barras; cada entrenamiento encima) contra la ingesta (línea punteada).</p>
     <div class="legend">
       <span><i class="key-rect" style="background:var(--s-neutral)"></i>Fuera del entreno</span>
 __LEYENDA_ENTRENOS__
-      <span><i class="key-dash" style="border-color:var(--ink-2)"></i>Ingesta estimada</span>
-      <span id="tdee-key" hidden><i class="key-line" style="background:var(--s-blue-strong)"></i>Gasto real según el peso</span>
+      <span><i class="key-dash" style="border-color:var(--ink-2)"></i>Ingesta</span>
+      <span><i class="key-dot" style="border:1.5px solid var(--ink-2);background:var(--surface)"></i>Ingesta sin dato (imputada)</span>
     </div>
     <div class="chart" id="c-kcal"></div>
   </section>
 
   <section class="panel">
-    <h2><span class="corr-only">Déficit real</span><span class="raw-only">Déficit según __DISPOSITIVO__</span> <span class="est">Estimado</span></h2>
-    <p class="desc">Cuánto menos comiste de lo que gastaste, como % del gasto<span class="corr-only"> corregido</span><span class="raw-only"> de __DISPOSITIVO__</span>. Lo recomendado es 20–25 % (franja verde); sobre 35 % el día quedó corto de comida. La línea azul es el promedio de los últimos 7 días. Usa la ingesta estimada: el menú, con la variante sin entreno, el doble turno y las comidas fuera del plan de registros/ingesta.csv.</p>
+    <h2>Déficit <span class="est">Estimado</span></h2>
+    <p class="desc">Déficit del día como % del gasto. Meta: 20–25 % (franja verde). Barra tenue: ingesta sin dato.</p>
     <div class="legend">
       <span><i class="key-rect" style="background:var(--s-neutral)"></i>Bajo 20 %</span>
       <span><i class="key-rect" style="background:var(--good)"></i>20–25 %</span>
       <span><i class="key-rect" style="background:var(--warning)"></i>25–35 %</span>
       <span><i class="key-rect" style="background:var(--critical)"></i>Sobre 35 %</span>
-      <span><i class="key-line" style="background:var(--s-blue-strong)"></i>Últimos 7 días</span>
       <span><i class="key-rect" style="background:var(--band-goal)"></i>Zona recomendada</span>
     </div>
     <div class="chart" id="c-deficit"></div>
@@ -437,12 +428,11 @@ __LEYENDA_ENTRENOS__
   const intakeNote = (n) => (P.intakeDays || {})[fromN(n)];
   const intakeMenu = (n) => { let v = null; P.intake.forEach(([d, k]) => { if (n >= toN(d)) v = k; }); return v != null && isDouble(n) ? v + (P.doubleExtra || 0) : v; };
   const intakeAt = (n) => { const e = intakeNote(n); return e ? e.kcal : intakeMenu(n); };
-  const intakeLabel = (n) => { const e = intakeNote(n); return e && e.src !== "menú" ? "ingesta (" + e.src + ")" : "ingesta del menú"; };
-  // Expenditure view: WHOOP as is, or corrected by the calibrated factor (analisis/gasto-calorico.md).
-  let corr = true;
-  try { corr = localStorage.getItem("corr") !== "0"; } catch (e) { /* storage unavailable */ }
-  const wf = () => corr ? P.whoopFactor : 1;
-  document.querySelectorAll(".wf").forEach((e) => { e.textContent = fmt(P.whoopFactor, 2); });
+  const KIND = { confirmada: "ingesta confirmada", estimada: "ingesta estimada", imputada: "ingesta imputada", supuesta: "ingesta supuesta" };
+  const intakeImputed = (n) => { const e = intakeNote(n); return !!e && ["imputada", "supuesta"].includes(e.kind); };
+  const intakeLabel = (n) => { const e = intakeNote(n); return e ? KIND[e.kind] : "ingesta del menú"; };
+  // Expenditure is always the corrected one: device (per 24 h) × the calibrated factor (analisis/gasto-calorico.md).
+  const wf = () => P.whoopFactor;
   const recStatus = (r) => r == null ? null : r >= 67 ? "good" : r >= 34 ? "warning" : "critical";
   const recName = { good: "verde", warning: "amarilla", critical: "roja" };
 
@@ -694,7 +684,7 @@ __LEYENDA_ENTRENOS__
     },
     tip: (n) => {
       const w = weighBy[n], r = refAt(n), rows = [];
-      if (w) rows.push([css("--s-blue"), w.src === "fitdays" ? "pesaje " + w.t : w.src === "estimado" ? "sin pesaje · estimado (promedio del día anterior y el siguiente)" : "pesaje (registro)", fmt(w.w, 2) + " kg"]);
+      if (w) rows.push([css("--s-blue"), w.src === "fitdays" ? "pesaje " + w.t : w.src === "estimado" ? "sin pesaje · estimado (interpolado entre los pesajes vecinos)" : "pesaje (registro)", fmt(w.w, 2) + " kg"]);
       if (w && r != null) rows.push([null, (w.avg7 != null ? "promedio 7 días" : "pesaje") + " contra la referencia", sign((w.avg7 ?? w.w) - r) + " kg"]);
       return rows;
     },
@@ -832,21 +822,6 @@ __LEYENDA_ENTRENOS__
     },
   });
 
-  // Real expenditure from the weight trend: menu intake + 7-day-average weight lost × 7,700 kcal/kg, over the last
-  // 14 days. Week 1 (mostly water and glycogen) is skipped, so the first value appears with 7 days of window.
-  const KCAL_PER_KG = 7700, TDEE_WINDOW = 14, TDEE_MIN_DAYS = 7, TDEE_FROM = START;
-  const avg7By = Object.fromEntries(weigh.filter((w) => w.avg7all != null).map((w) => [toN(w.d), w.avg7all]));
-  const tdeeBy = {};
-  Object.keys(avg7By).map(Number).forEach((n) => {
-    for (let s = Math.max(TDEE_FROM, n - TDEE_WINDOW); s <= n - TDEE_MIN_DAYS; s++) {
-      if (avg7By[s] == null) continue;
-      let intake = 0, days = 0;
-      for (let k = s + 1; k <= n; k++) { const v = intakeAt(k); if (v != null) { intake += v; days++; } }
-      if (days) tdeeBy[n] = { kcal: intake / days + (avg7By[s] - avg7By[n]) * KCAL_PER_KG / (n - s), days: n - s };
-      break;
-    }
-  });
-  const hasTdee = Object.keys(tdeeBy).length > 0;
   // Energy: stacked bars per complete day. The rest of the day outside workouts (WHOOP can't split basal from
   // everyday activity), then each workout type on top in a fixed order and color.
   const WO_TYPES = [...P.workouts.map((w) => [w.nombre, w.color]), ["Otro", "--s-blue-strong"]];
@@ -854,7 +829,7 @@ __LEYENDA_ENTRENOS__
   const woKcal = (x) => { const t = {}; (x.wo || []).forEach(([type, , kcal]) => { t[type] = (t[type] || 0) + kcal; }); return t; };
   makeChart("c-kcal", {
     height: 210, bars: true, label: "Gasto diario por componente contra la ingesta estimada", yFmt: (v) => fmt(v, 0),
-    y: (a, b) => { const v = inDom(whoop, a, b).map((x) => x.kcal * wf()); v.push(0, ...P.intake.map(([, k]) => k)); for (let n = a; n <= b; n++) if (tdeeBy[n]) v.push(tdeeBy[n].kcal); return [0, Math.max(...v.filter((x) => x != null)) * 1.08]; },
+    y: (a, b) => { const v = inDom(whoop, a, b).map((x) => x.kcal * wf()); v.push(0, ...P.intake.map(([, k]) => k)); return [0, Math.max(...v.filter((x) => x != null)) * 1.08]; },
     draw: (g, sx, sy, ctx) => {
       const w = barW(sx, ctx), GAP = 2, f = wf();
       inDom(whoop, ctx.a, ctx.b).filter((x) => x.kcal != null).forEach((x) => {
@@ -877,53 +852,38 @@ __LEYENDA_ENTRENOS__
         let d = "";
         pts.forEach(([n, v], i) => { const x0 = sx(n - 0.5), x1 = sx(n + 0.5); d += (i ? "L" : "M") + x0.toFixed(1) + " " + sy(v).toFixed(1) + "L" + x1.toFixed(1) + " " + sy(v).toFixed(1); });
         el("path", { d, fill: "none", stroke: "var(--ink-2)", "stroke-width": 1.5, "stroke-dasharray": "5 4" }, g);
+        pts.filter(([n]) => intakeImputed(n)).forEach(([n, v]) => el("circle", { cx: sx(n), cy: sy(v), r: 3.5, fill: "var(--surface)", stroke: "var(--ink-2)", "stroke-width": 1.5 }, g));
       }
-      const real = Object.keys(tdeeBy).map(Number).filter((n) => n >= ctx.a && n <= ctx.b).sort((p, q) => p - q).map((n) => [sx(n), sy(tdeeBy[n].kcal)]);
-      if (real.length > 1) el("path", { d: pathOf(real), fill: "none", stroke: "var(--s-blue-strong)", "stroke-width": 2.5, "stroke-linejoin": "round" }, g);
-      dots(g, real, "var(--s-blue-strong)", 3.5);
     },
     tip: (n) => {
       const x = whoopBy[n];
-      const real = tdeeBy[n] ? [[css("--s-blue-strong"), "gasto real según el peso (" + tdeeBy[n].days + " días)", fmt(tdeeBy[n].kcal, 0) + " kcal"]] : [];
-      if (!x || x.kcal == null) return real;
-      const t = woKcal(x), active = Object.values(t).reduce((s, k) => s + k, 0);
-      const rest = x.kcal - active;
+      if (!x || x.kcal == null) return [];
       const f = wf(), k = (v) => fmt(v * f, 0) + " kcal";
-      const rows = [...(x.complete ? [] : [[null, "día en curso", "hasta ahora"]]), [null, corr ? "gasto corregido" : "gasto " + P.device, k(x.kcal)], [css("--s-neutral"), "fuera del entreno", k(rest)]];
+      const rows = [[null, x.complete ? "gasto" : "gasto hasta ahora", k(x.kcal)]];
       (x.wo || []).forEach(([type, min, kcal]) => rows.push([css(woColor[type]), type.toLowerCase() + " · " + min + " min", k(kcal)]));
-      if (x.cycleH) rows.push([null, P.device + " marcó en un ciclo de " + fmt(x.cycleH) + " h", fmt(x.kcalRaw, 0) + " kcal"]);
-      else if (corr) rows.push([null, P.device + " marcó", fmt(x.kcal, 0) + " kcal"]);
       const i = intakeAt(n);
-      if (i != null && x.complete) rows.push([css("--ink-2"), intakeLabel(n), fmt(i, 0) + " kcal"],
-        [null, "déficit", fmt(x.kcal * f - i, 0) + " kcal (" + fmt(100 * (1 - i / (x.kcal * f)), 0) + " %)"]);
-      return [...rows, ...real];
+      if (i != null && x.complete) rows.push([css("--ink-2"), intakeLabel(n), fmt(i, 0) + " kcal"]);
+      return rows;
     },
   });
 
   // Real deficit: menu intake against WHOOP × factor (calibrated in analisis/gasto-calorico.md).
   const deficitAt = (n, f = wf()) => { const x = whoopBy[n], i = intakeAt(n); return x && x.complete && x.kcal && i != null ? 100 * (1 - i / (x.kcal * f)) : null; };
-  const deficit7 = (n) => {
-    let I = 0, E = 0, days = 0;
-    for (let k = n - 6; k <= n; k++) { const x = whoopBy[k], i = intakeAt(k); if (x && x.complete && x.kcal && i != null) { I += i; E += x.kcal * wf(); days++; } }
-    return days >= 5 && deficitAt(n) != null ? { pct: 100 * (1 - I / E), kcal: (E - I) / days, days } : null;
-  };
   const defColor = (v) => v < P.deficitGoal[0] ? "--s-neutral" : v <= P.deficitGoal[1] ? "--good" : v <= P.deficitHigh ? "--warning" : "--critical";
   makeChart("c-deficit", {
-    height: 200, bars: true, label: "Déficit diario como % del gasto, con el promedio de 7 días", yFmt: (v) => fmt(v, 0) + " %",
+    height: 200, bars: true, label: "Déficit diario como % del gasto", yFmt: (v) => fmt(v, 0) + " %",
     y: (a, b) => { const v = [0, P.deficitHigh + 5]; for (let n = a; n <= b; n++) { const d = deficitAt(n); if (d != null) v.push(d); } return [Math.min(...v) - 2, Math.max(...v) + 3]; },
     draw: (g, sx, sy, ctx) => {
       el("rect", { x: ctx.m.l, width: ctx.W - ctx.m.l - ctx.m.r, y: sy(P.deficitGoal[1]), height: sy(P.deficitGoal[0]) - sy(P.deficitGoal[1]), fill: "var(--band-goal)" }, g);
       const w = barW(sx, ctx);
       for (let n = ctx.a; n <= ctx.b; n++) {
         const d = deficitAt(n); if (d == null) continue;
-        if (d >= 0) bar(g, sx(n) - w / 2, sy(d), w, sy(0) - sy(d), `var(${defColor(d)})`);
-        else el("rect", { x: sx(n) - w / 2, y: sy(0), width: w, height: sy(d) - sy(0), fill: "var(--s-neutral)" }, g);
+        const gb = intakeImputed(n) ? el("g", { opacity: 0.4 }, g) : g;
+        if (d >= 0) bar(gb, sx(n) - w / 2, sy(d), w, sy(0) - sy(d), `var(${defColor(d)})`);
+        else el("rect", { x: sx(n) - w / 2, y: sy(0), width: w, height: sy(d) - sy(0), fill: "var(--s-neutral)" }, gb);
       }
       hline(g, sx, sy, ctx.a, ctx.b, P.deficitHigh, "var(--critical)", fmt(P.deficitHigh, 0) + " %", ctx);
       el("line", { x1: ctx.m.l, x2: ctx.W - ctx.m.r, y1: sy(0), y2: sy(0), stroke: "var(--ink-2)", "stroke-width": 1 }, g);
-      const pts = []; for (let n = ctx.a; n <= ctx.b; n++) { const r = deficit7(n); if (r) pts.push([sx(n), sy(r.pct)]); }
-      if (pts.length > 1) el("path", { d: pathOf(pts), fill: "none", stroke: "var(--s-blue-strong)", "stroke-width": 2.5, "stroke-linejoin": "round" }, g);
-      dots(g, pts, "var(--s-blue-strong)", 3);
     },
     tip: (n) => {
       const x = whoopBy[n], i = intakeAt(n), rows = [];
@@ -931,11 +891,8 @@ __LEYENDA_ENTRENOS__
       const d = deficitAt(n);
       if (d != null) {
         const e = x.kcal * wf();
-        rows.push([css(defColor(d)), "déficit", fmt(d, 0) + " % · " + fmt(e - i, 0) + " kcal"],
-          [null, corr ? "gasto corregido" : "gasto " + P.device, fmt(e, 0) + " kcal"], [css("--ink-2"), intakeLabel(n), fmt(i, 0) + " kcal"]);
+        rows.push([css(defColor(d)), "déficit" + (intakeImputed(n) ? " (ingesta sin dato)" : ""), fmt(d, 0) + " % · " + fmt(e - i, 0) + " kcal"]);
       }
-      const r = deficit7(n);
-      if (r) rows.push([css("--s-blue-strong"), "últimos 7 días (" + r.days + " días)", fmt(r.pct, 0) + " % · " + fmt(r.kcal, 0) + " kcal/día"]);
       return rows;
     },
   });
@@ -1090,7 +1047,7 @@ __LEYENDA_ENTRENOS__
       cell(tr, x && x.rec != null ? fmt(x.rec, 0) + "%" : ""); cell(tr, x && x.hrv != null ? fmt(x.hrv) : "");
       cell(tr, x && x.rhr != null ? fmt(x.rhr, 0) : ""); cell(tr, x && x.sleep != null ? fmt(x.sleep) + " h" : "");
       cell(tr, x && x.steps != null && x.complete ? fmt(x.steps, 0) : "");
-      cell(tr, x && x.kcalRaw != null && x.complete ? fmt(x.kcalRaw, 0) : "");
+      cell(tr, x && x.kcal != null && x.complete ? fmt(x.kcal * wf(), 0) : "");
       tb.append(tr);
     });
     t.replaceChildren(th, tb);
@@ -1106,18 +1063,42 @@ __LEYENDA_ENTRENOS__
     { key: "skmKg", name: "Músculo esquelético", unit: "kg", color: "--s-aqua" },
     { key: "fatKg", name: "Masa grasa", unit: "kg", color: "--s-orange" },
     { key: "fatPct", name: "% de grasa", unit: "%", color: "--s-orange" },
-  ].filter((row) => D.history.some((w) => w[row.key] != null));
+    { key: "sport", name: "Deporte", unit: "kcal/semana", color: "--s-violet", digits: 0, minSpan: 1000, neutral: true },
+    { key: "def", name: "Déficit", unit: "kcal/semana", color: "--s-blue-strong", digits: 0, minSpan: 1000, neutral: true },
+  ].filter((row) => row.key === "def" || row.key === "sport" || D.history.some((w) => w[row.key] != null));
+  // Weekly deficit: the 7 complete days before each Monday (the Monday weigh-in reflects them), gasto (WHOOP × factor
+  // ) minus intake. The open week uses the days so far.
+  function weekDeficit(w) {
+    const end = toN(w.d) - 1;
+    let I = 0, E = 0, days = 0, imputed = 0;
+    for (let k = end - 6; k <= end; k++) { const x = whoopBy[k], i = intakeAt(k); if (x && x.complete && x.kcal && i != null) { I += i; E += x.kcal * wf(); days++; if (intakeImputed(k)) imputed++; } }
+    return days ? { def: E - I, defPct: 100 * (1 - I / E), defDay: (E - I) / days, defDays: days, defImputed: imputed } : { def: null };
+  }
+  // Weekly sport: corrected kcal (× factor) of the workouts in the same 7 days, without the ones that are not a
+  // session (walking). The open week counts the workouts so far.
+  function weekSport(w) {
+    const end = toN(w.d) - 1, byType = {};
+    let kcal = 0, min = 0, n = 0, days = 0;
+    for (let k = end - 6; k <= end; k++) {
+      const x = whoopBy[k]; if (!x) continue;
+      days++;
+      (x.wo || []).filter(([t]) => !P.noSession.includes(t)).forEach(([t, m, kc]) => { kcal += kc * wf(); min += m; n++; byType[t] = (byType[t] || 0) + kc * wf(); });
+    }
+    return days ? { sport: kcal, sportMin: min, sportN: n, sportTypes: byType, sportDays: days } : { sport: null };
+  }
   let histKey = "recent";
   try { histKey = localStorage.getItem("panel-hist") === "all" ? "all" : "recent"; } catch (e) { /* storage unavailable */ }
   function renderHistory() {
     const root = document.getElementById("c-history");
     const fromBase = D.history.filter((w) => toN(w.d) >= DAY0); // the «Desde …» toggle sets the first Monday
     const weeks = histKey === "all" ? fromBase : fromBase.slice(-6);
+    weeks.forEach((w) => Object.assign(w, weekDeficit(w), weekSport(w)));
+    const rows = HIST_ROWS.filter((row) => !["def", "sport"].includes(row.key) || weeks.some((w) => w[row.key] != null));
     if (!weeks.length) { root.innerHTML = '<p class="empty">Sin pesajes todavía.</p>'; return; }
-    const W = root.clientWidth || 900, LW = Math.min(190, W * 0.3), RH = 74, DH = 34, H = RH * HIST_ROWS.length + DH;
-    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": "Historial semanal de peso, masa muscular, músculo esquelético, masa grasa y % de grasa" });
+    const W = root.clientWidth || 900, LW = Math.min(190, W * 0.3), RH = 74, DH = 34, H = RH * rows.length + DH;
+    const svg = el("svg", { viewBox: `0 0 ${W} ${H}`, height: H, role: "img", "aria-label": "Historial semanal de peso, masa muscular, músculo esquelético, masa grasa, % de grasa, deporte y déficit" });
     const colW = (W - LW) / weeks.length, cx = (i) => LW + colW * (i + 0.5);
-    HIST_ROWS.forEach((row, r) => {
+    rows.forEach((row, r) => {
       const top = r * RH;
       el("rect", { x: 0, y: top + 1, width: LW - 10, height: RH - 2, rx: 6, fill: css("--pre") }, svg);
       el("text", { x: 12, y: top + RH / 2 - 2, class: "h-name" }, svg).textContent = row.name;
@@ -1127,7 +1108,7 @@ __LEYENDA_ENTRENOS__
       const vals = weeks.map((w) => w[row.key]);
       const ok = vals.filter((v) => v != null);
       if (!ok.length) return;
-      const [lo, hi] = extent(ok, 0, row.unit === "%" ? 1 : 0.8);
+      const [lo, hi] = extent(ok, 0, row.minSpan || (row.unit === "%" ? 1 : 0.8));
       // Values sit in the lower part of the row so their labels fit above the points.
       const sy = (v) => top + RH - 14 - (v - lo) / (hi - lo) * (RH - 46);
       const pts = weeks.map((w, i) => w[row.key] == null ? null : [cx(i), sy(w[row.key]), w]);
@@ -1137,23 +1118,28 @@ __LEYENDA_ENTRENOS__
       const open = segs.slice(-2);
       if (open.length === 2 && open[1][2].open) el("path", { d: pathOf(open.map(([x, y]) => [x, y])), fill: "none", stroke: css(row.color), "stroke-width": 2, "stroke-dasharray": "4 4" }, svg);
       segs.forEach(([x, y, w], i) => {
-        const partial = w.n < 5 || w.open;
+        const partial = (row.key === "def" ? w.defDays - w.defImputed < 5 : row.key === "sport" ? w.sportDays < 5 : w.n < 5) || w.open;
+        const dg = row.digits ?? 1;
         const c = el("circle", { cx: x, cy: y, r: 5, fill: partial ? css("--surface") : css(row.color), stroke: css(row.color), "stroke-width": 2 }, svg);
-        el("title", {}, c).textContent = dWeek(toN(w.d)) + dShort(toN(w.d)) + ": " + fmt(w[row.key], 1) + " " + row.unit + " · " + w.n + " pesaje" + (w.n === 1 ? "" : "s") + " en la semana" + (w.open ? " (semana en curso: promedio incompleto)" : "");
+        el("title", {}, c).textContent = dWeek(toN(w.d)) + dShort(toN(w.d)) + ": " + fmt(w[row.key], dg) + " " + row.unit + (row.key === "def"
+          ? " (" + fmt(w.defPct, 0) + " %)" + (w.defImputed ? " · " + w.defImputed + " de " + w.defDays + " días sin dato de ingesta" : "")
+          : row.key === "sport"
+          ? " · " + w.sportN + " sesion" + (w.sportN === 1 ? "" : "es") + ", " + fmt(w.sportMin / 60, 1) + " h" + Object.entries(w.sportTypes).map(([t, k]) => " · " + t.toLowerCase() + " " + fmt(k, 0)).join("")
+          : " · " + w.n + " pesaje" + (w.n === 1 ? "" : "s")) + (w.open ? " · semana en curso" : "");
         const prev = i ? segs[i - 1][2][row.key] : null;
         const t = el("text", { x, y: y - 11, "text-anchor": "middle", class: "h-val" }, svg);
-        t.textContent = fmt(w[row.key], 1);
-        if (prev != null) {
-          const dv = Math.round(10 * (w[row.key] - prev)) / 10;
+        t.textContent = fmt(w[row.key], dg);
+        if (prev != null && !((row.key === "def" || row.key === "sport") && partial)) { // a partial week's total is not comparable
+          const dv = Math.round(10 ** dg * (w[row.key] - prev)) / 10 ** dg;
           const good = row.key === "skmKg" || row.key === "muscleKg" ? dv > 0 : dv < 0;
-          const ts = el("tspan", { dx: 4, "font-size": 11.5, "font-weight": 500, fill: dv === 0 ? css("--muted") : css(good ? "--good-ink" : "--critical-ink") }, t);
-          ts.textContent = dv === 0 ? "±0" : sign(dv);
+          const ts = el("tspan", { dx: 4, "font-size": 11.5, "font-weight": 500, fill: dv === 0 || row.neutral ? css("--muted") : css(good ? "--good-ink" : "--critical-ink") }, t);
+          ts.textContent = dv === 0 ? "±0" : sign(dv, dg);
         }
       });
     });
     weeks.forEach((w, i) => {
       if (i) el("line", { x1: LW + colW * i, x2: LW + colW * i, y1: 0, y2: H - 4, stroke: css("--axis"), "stroke-dasharray": "2 4" }, svg);
-      el("text", { x: cx(i), y: RH * HIST_ROWS.length + 21, "text-anchor": "middle", class: "h-date" }, svg).textContent = dWeek(toN(w.d)) + dShort(toN(w.d)) + (w.open ? " · en curso" : "");
+      el("text", { x: cx(i), y: RH * rows.length + 21, "text-anchor": "middle", class: "h-date" }, svg).textContent = dWeek(toN(w.d)) + dShort(toN(w.d)) + (w.open ? " · en curso" : "");
     });
     root.replaceChildren(svg);
   }
@@ -1167,21 +1153,24 @@ __LEYENDA_ENTRENOS__
   charts.push({ render: renderHistory, updateHover() {} });
 
   // ---------- range control ----------
-  // Every range starts with week 0 (shaded); 15/30/60/90 run up to that milestone, "plan" up to the goal date.
+  // Every range starts with week 0 (shaded); each milestone of the plan's table gets a button that runs up to it,
+  // "plan" up to the goal date. Without a table, the usual 7/15/30/60/90.
   const mileEnd = (days) => { const m = miles.find((x) => x.name === days + " días"); return (m ? m.n : START + days - 1) + 1; };
-  const ranges = {
-    "7": () => [DAY0, mileEnd(7)],
-    "15": () => [DAY0, mileEnd(15)],
-    "30": () => [DAY0, mileEnd(30)],
-    "60": () => [DAY0, mileEnd(60)],
-    "90": () => [DAY0, mileEnd(90)],
-    plan: () => [DAY0, GOAL + 7],
-  };
+  const mileDays = miles.length ? miles.map((m) => parseInt(m.name, 10)) : [7, 15, 30, 60, 90];
+  const ranges = { plan: () => [DAY0, GOAL + 7] };
+  const planBtn = document.getElementById("rplan");
+  mileDays.forEach((n) => {
+    ranges[n] = () => [DAY0, mileEnd(n)];
+    const b = document.createElement("button");
+    b.type = "button"; b.id = "r" + n; b.dataset.range = n; b.textContent = n + " días";
+    planBtn.before(b);
+  });
+  document.getElementById("miles-key").textContent = "Hitos " + mileDays.join(" · ") + " días";
   document.querySelectorAll(".range button").forEach((b) => {
     if (ranges[b.dataset.range] && b.dataset.range !== "plan") b.title = "Desde la base elegida (__BASE_1__ o __BASE_2__) hasta el hito de " + b.textContent + " (" + dWeek(mileEnd(+b.dataset.range) - 1) + dShort(mileEnd(+b.dataset.range) - 1) + ")";
   });
   // Default: the first milestone not yet reached.
-  const defaultRange = ["7", "15", "30", "60", "90"].find((k) => mileEnd(+k) - 1 >= TODAY) || "plan";
+  const defaultRange = mileDays.map(String).find((k) => mileEnd(+k) - 1 >= TODAY) || "plan";
   let rangeKey = defaultRange;
   function setRange(key) {
     if (!ranges[key]) key = defaultRange;
@@ -1193,15 +1182,6 @@ __LEYENDA_ENTRENOS__
     charts.forEach((c) => c.render());
   }
   document.querySelectorAll("[data-range]").forEach((b) => b.addEventListener("click", () => setRange(b.dataset.range)));
-  function setCorr(on) {
-    corr = on;
-    try { localStorage.setItem("corr", on ? "1" : "0"); } catch (e) { /* storage unavailable */ }
-    document.querySelectorAll("[data-corr]").forEach((b) => b.setAttribute("aria-pressed", String(b.dataset.corr === (on ? "1" : "0"))));
-    document.querySelectorAll(".corr-only").forEach((e) => { e.hidden = !on; });
-    document.querySelectorAll(".raw-only").forEach((e) => { e.hidden = on; });
-    charts.forEach((c) => c.render());
-  }
-  document.querySelectorAll("[data-corr]").forEach((b) => b.addEventListener("click", () => setCorr(b.dataset.corr === "1")));
   function setBase(key, redraw = true) {
     baseKey = BASES[key] != null ? key : "start";
     DAY0 = BASES[baseKey];
@@ -1223,19 +1203,17 @@ __LEYENDA_ENTRENOS__
   document.getElementById("sub").textContent = (TODAY < START ? "Fase 1 · semana 0 (adaptación)" : "Fase 1 · día " + (TODAY - START + 1) + " de 90") + " · meta " + fmt(P.goalLow) + "–" + fmt(P.goalHigh) + " kg hacia el " + dLong(P.goalDate);
   document.getElementById("plan-ver").textContent = P.version;
   document.getElementById("gen").textContent = "Actualizado el " + dLong(D.generated.slice(0, 10)) + " a las " + D.generated.slice(11) + ".";
-  if (hasTdee) document.getElementById("tdee-key").hidden = false;
   // Sections without data (another device, no blood pressure monitor…) are hidden instead of left empty.
   const has = (k) => whoop.some((x) => x[k] != null);
   const show = (sel, on) => document.querySelectorAll(sel).forEach((e) => { if (!on) e.hidden = true; });
   const section = (id, on) => { if (!on) document.getElementById(id).closest("section").hidden = true; };
-  show(".cycle-only", whoop.some((x) => x.cycleH));
+
   show(".rec-only", has("rec"));
   show(".norec-only", !has("rec"));
   show(".hrv-only", has("hrv"));
   section("c-rec", has("rec") || has("hrv"));
   section("c-kcal", has("kcal"));
   section("c-deficit", has("kcal"));
-  show("#corr-group", has("kcal"));
   section("c-steps", has("steps"));
   section("c-sleep", has("sleep"));
   section("c-bp", D.bp.length > 0 || P.bpSource);
@@ -1249,7 +1227,6 @@ __LEYENDA_ENTRENOS__
   let saved = defaultRange;
   try { saved = localStorage.getItem("panel-range") || defaultRange; } catch (e) {}
   setRange(saved);
-  setCorr(corr);
   let rt;
   new ResizeObserver(() => { clearTimeout(rt); rt = setTimeout(() => charts.forEach((c) => c.render()), 80); }).observe(document.querySelector(".wrap"));
 })();

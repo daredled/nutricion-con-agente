@@ -9,7 +9,7 @@ Persona ficticia: datos inventados. El método está en `plantillas/gasto-calori
 
 ### Datos
 - Pesajes del 2026-10-19 al 2026-11-02 (15): pendiente de la regresión **−0,089 kg/día (−1,24 kg en 14 días)**. La semana 0 queda fuera (agua y glucógeno).
-- Ingesta: menú 1.690 × 12 días + 2.590 (cena fuera, 24-10) + 2.340 (cumpleaños, 31-10) = **~1.800 kcal/día**.
+- Ingesta: menú 1.690 × 12 días + 2.590 (cena fuera, 24-10) + 2.340 (cumpleaños, 31-10) = **~1.800 kcal/día**. Todos los días tienen dato: 12 confirmados (`menu`) y 2 estimados; ninguno imputado.
 - Garmin: **2.194 kcal/día** (días completos; Garmin da días calendario, así que el gasto ya es de 24 h).
 
 ### Comparación

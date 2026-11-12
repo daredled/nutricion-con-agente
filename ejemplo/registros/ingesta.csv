@@ -1,3 +1,24 @@
-date,kcal,nota
-2026-10-24,2590,cena fuera: pizza y postre (sodio ~2.400 mg)
-2026-10-31,2340,cumpleaños: torta y empanadas (sodio ~1.900 mg)
+date,kcal,tipo,nota
+2026-10-12,,menu,menú completo
+2026-10-13,,menu,menú completo
+2026-10-14,,menu,menú completo
+2026-10-15,,menu,menú completo
+2026-10-16,,menu,menú completo
+2026-10-17,,menu,menú completo
+2026-10-18,,menu,menú completo
+2026-10-19,,menu,menú completo
+2026-10-20,,menu,menú completo
+2026-10-21,,menu,menú completo
+2026-10-22,,menu,menú completo
+2026-10-23,,menu,menú completo
+2026-10-24,2590,estimada,cena fuera: pizza y postre (sodio ~2.400 mg)
+2026-10-25,,menu,menú completo
+2026-10-26,,menu,menú completo
+2026-10-27,,menu,menú completo
+2026-10-28,,menu,menú completo
+2026-10-29,,menu,menú completo
+2026-10-30,,menu,menú completo
+2026-10-31,2340,estimada,cumpleaños: torta y empanadas (sodio ~1.900 mg)
+2026-11-01,,menu,menú completo
+2026-11-02,,menu,menú completo
+2026-11-03,,menu,menú completo

@@ -95,6 +95,7 @@ Crear `persona/` con:
 - `perfil.md` y `operacion.md` (fechas de revisión: día 1, hitos, recalibración a las 2 semanas, pausa en mantención).
 - `plan/` con el plan y `plan/etiquetas/` para las tablas nutricionales.
 - `registros/seguimiento.md` (desde `plantillas/seguimiento.md`) y los CSV que vaya escribiendo cada dispositivo.
+- `registros/ingesta.csv` con el encabezado `date,kcal,tipo,nota` (ver `formatos.md`): desde la semana 0 se anota la ingesta de cada día.
 - `analisis/gasto-calorico.md` (desde `plantillas/gasto-calorico.md`).
 - `imprimir/menu-refrigerador.html` (desde `plantillas/menu-refrigerador.html`), para imprimirlo desde el navegador.
 

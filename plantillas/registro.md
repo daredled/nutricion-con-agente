@@ -32,7 +32,7 @@ Fuente: `AAAA-MM-DD_fitdays.png` (o `registros/fitdays.csv`, sin captura). Si la
 | Pierna der. | | | | |
 
 ## WHOOP
-- **Día anterior (completo):** sesiones, strain, gasto del día (corregido × factor; déficit real con la ingesta del día). Pasos (contra la meta del plan).
+- **Día anterior (completo):** sesiones, strain, gasto del día (solo el corregido; déficit con la ingesta del día). Pasos (contra la meta del plan).
 - **Noche:** recovery, HRV (contra el umbral del plan), FC en reposo, frecuencia respiratoria, sueño (rendimiento, eficiencia), deuda de sueño.
 - **Día (en curso):** entreno o día sin entreno.
 - Promedio de 7 días: HRV, FC en reposo y días con recovery <33 %, contra los umbrales del plan.
@@ -45,5 +45,5 @@ Fuente: `AAAA-MM-DD_fitdays.png` (o `registros/fitdays.csv`, sin captura). Si la
 - Presión arterial (Withings, opcional):
 - Cintura (ombligo, cm; lunes):
 - Cumplimiento del menú (%):
-- Fuera del plan / snack de emergencia: (kcal y sodio estimados; si cambia la ingesta del día, anotarla en `registros/ingesta.csv`)
+- Fuera del plan / snack de emergencia: (kcal y sodio estimados; anotar el día en `registros/ingesta.csv` con su tipo: `menu`, `estimada` o `fuera`)
 - Notas: (promedio de 7 días contra la referencia del día)

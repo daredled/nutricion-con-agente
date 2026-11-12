@@ -6,6 +6,7 @@ plan = "plan/AAAA-MM-DD_plan-fase1.md"  # relativo a persona/
 datos_desde = "AAAA-MM-DD"     # primer lunes con datos: inicio de la semana 0 (adaptación)
 dia_0 = "AAAA-MM-DD"           # el domingo antes del día 1
 dia_1 = "AAAA-MM-DD"           # lunes en que parte el conteo de días del plan
+# hoy = "AAAA-MM-DD"           # opcional: fija la fecha del panel (solo para ejemplos); sin ella, la fecha real
 base_segmentos = "AAAA-MM-DD"  # respaldo de las figuras por segmento: el primer pesaje con segmentos (primer día de la semana 0)
 
 # De dónde sale cada dato (formatos.md). Sin esta sección: Fitdays, WHOOP y Withings.

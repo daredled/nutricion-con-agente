@@ -53,7 +53,7 @@ Las horas de cada ciclo, para llevar el gasto a 24 h, salen de `whoop/raw/cycles
 Lo escribe `withings-sync` o un conversor (`presion = "csv"`). Columnas: `date`, `time`, `systolic`, `diastolic`, `pulse` (más `grpid` y `timezone`, que el panel no usa). A mano: una fila por toma.
 
 ## Ingesta: `ingesta.csv`
-`date`, `kcal`, `nota`. Solo los días que no fueron el menú (comidas fuera del plan, snack, ayuno). El resto lo calcula el panel con `ingesta.menu` de `config.toml`.
+`date`, `kcal`, `tipo`, `nota`. Una fila por día con información: `menu` (confirmó el menú; `kcal` vacío, el panel usa `ingesta.menu` de `config.toml` con sus excepciones), `estimada` (`kcal` estimadas: comidas fuera del plan, snack, ayuno) o `fuera` (se salió del menú sin detalle; `kcal` vacío). Sin `tipo`, una fila con `kcal` cuenta como `estimada`. Los días sin fila y los `fuera` se imputan (ver «Datos medidos y estimados» en `metodologia.md`).
 
 ## Seguimiento: `seguimiento.md`
 Tabla diaria (ver `plantillas/seguimiento.md`). El panel lee de ahí el peso, la grasa, la masa libre de grasa y la grasa visceral de los días que no están en el CSV de la pesa.

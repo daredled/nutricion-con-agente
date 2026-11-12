@@ -11,7 +11,7 @@ Se usan tres métodos independientes y se comparan. Manda el balance de energía
 
 ### 1. Balance de energía (método de referencia)
 - Gasto real = ingesta media + (kg bajados × 7.700 kcal) ÷ días.
-- **Ingesta:** `ingesta.menu` de `config.toml` por día, más las excepciones (doble turno) y lo anotado en `registros/ingesta.csv`.
+- **Ingesta:** la de `registros/ingesta.csv` por tipo (confirmada, estimada o imputada; ver `metodologia.md`). Decir cuántos días de la ventana son imputados.
 - **Cambio de peso:** pendiente de una regresión lineal de los pesajes diarios, o diferencia entre promedios de 7 días. Nunca un pesaje suelto.
   - Al comparar promedios de 7 días, el período del déficit va del centro de la primera ventana al centro de la segunda, no del primer al último día.
 - **Agua y glucógeno:** en la primera semana de un déficit, y después de cambios de sal o de carbohidratos, gran parte de la baja es agua. Por eso:
@@ -37,7 +37,7 @@ Se usan tres métodos independientes y se comparan. Manda el balance de energía
 
 ## Cómo repetirlo (para cada recalibración)
 1. Tomar una ventana de al menos 14 días desde el día 1, sin cambios de sal o de carbohidratos al inicio.
-2. Ingesta: `ingesta.menu` de `config.toml` + excepciones + `registros/ingesta.csv`.
+2. Ingesta: la del panel (`intakeDays`), separando los días confirmados, estimados e imputados.
 3. Peso: pendiente de la regresión de los pesajes, o diferencia entre promedios de 7 días bien alineada (ver arriba).
 4. Gasto real = ingesta media + (kg bajados × 7.700) ÷ días.
 5. Comparar con el promedio del dispositivo en la misma ventana (solo días completos, llevado a 24 h) y con el cálculo MET corregido.
